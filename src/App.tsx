@@ -32,7 +32,7 @@ export default function App() {
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;
-    const BLOCK_SIZE = 60;
+    const BLOCK_SIZE = 64;
     let snappedX = x;
     let snappedY = y;
     let isSnappedX = false;
@@ -137,7 +137,7 @@ export default function App() {
   };
 
   const handleTemplateDrag = (e: any, info: any) => {
-    const sidebarWidth = sidebarRef.current?.offsetWidth || 288;
+    const sidebarWidth = sidebarRef.current?.offsetWidth || 320;
     const isOverCanvas = info.point.x > sidebarWidth;
     
     if (isOverCanvas !== isOverCanvasRef.current) {
@@ -149,7 +149,7 @@ export default function App() {
   const handleTemplateDragEnd = (e: any, info: any, template: any) => {
     setIsDraggingTemplate(false);
     isOverCanvasRef.current = false;
-    const sidebarWidth = sidebarRef.current?.offsetWidth || 288;
+    const sidebarWidth = sidebarRef.current?.offsetWidth || 320;
     
     // Ignore tiny movements (clicks)
     const dragDistance = Math.sqrt(info.offset.x ** 2 + info.offset.y ** 2);
@@ -178,7 +178,7 @@ export default function App() {
 
   const handleBlockDragEnd = (id: string, info: any) => {
     setIsDraggingExisting(false);
-    const sidebarWidth = sidebarRef.current?.offsetWidth || 288;
+    const sidebarWidth = sidebarRef.current?.offsetWidth || 320;
     
     if (info.point.x < sidebarWidth) {
       deleteBlock(id);
@@ -218,28 +218,28 @@ export default function App() {
   return (
     <div className="flex h-screen w-full bg-zinc-50 overflow-hidden font-sans text-zinc-900">
       {/* Sidebar */}
-      <aside 
+      <aside
         ref={sidebarRef}
-        className="w-72 bg-white border-r border-zinc-200 flex flex-col shadow-sm z-20 relative"
+        className="w-80 bg-white border-r border-zinc-200 flex flex-col shadow-sm z-20 relative"
       >
-        <div className="p-6 border-b border-zinc-100">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <Plus size={20} />
+        <div className="px-6 py-5 border-b border-zinc-100">
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+              <Plus size={22} />
             </div>
             积木创意工坊
           </h1>
-          <p className="text-xs text-zinc-500 mt-1 uppercase tracking-wider font-semibold">Block Builder Pro</p>
+          <p className="text-xs text-zinc-500 mt-2 uppercase tracking-wider font-semibold">Block Builder Pro</p>
         </div>
 
-        <div className={`flex-1 p-4 space-y-6 ${isAnyItemDragging ? 'overflow-visible' : 'overflow-y-auto'}`}>
+        <div className={`flex-1 px-5 py-4 space-y-6 ${isAnyItemDragging ? 'overflow-visible' : 'overflow-y-auto'}`}>
           <section>
             <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">形状库 (拖拽添加)</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {BLOCK_TEMPLATES.map((template) => (
-                <div 
-                  key={template.type} 
-                  className="relative h-28 bg-zinc-50 rounded-xl border border-zinc-100 flex flex-col items-center justify-center p-4 hover:border-blue-400 hover:bg-blue-50 transition-colors group"
+                <div
+                  key={template.type}
+                  className="relative h-32 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col items-center justify-center p-4 hover:border-blue-400 hover:bg-blue-50 transition-colors group"
                 >
                   <motion.div
                     drag
@@ -263,7 +263,7 @@ export default function App() {
                     className="z-30 cursor-grab active:z-50 touch-none"
                   >
                     <div className="pointer-events-none">
-                      <BlockShape type={template.type} color={template.defaultColor} size={48} />
+                      <BlockShape type={template.type} color={template.defaultColor} size={52} />
                     </div>
                   </motion.div>
                   
@@ -286,7 +286,7 @@ export default function App() {
             <motion.section
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-zinc-900 rounded-2xl p-5 text-white space-y-5 shadow-xl"
+              className="bg-zinc-900 rounded-2xl p-6 text-white space-y-5 shadow-xl"
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">编辑积木</h2>
@@ -297,40 +297,40 @@ export default function App() {
 
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase">颜色选择</label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-5 gap-3">
                   {COLORS.map(color => (
                     <button
                       key={color}
                       onClick={() => updateBlock(selectedId, { color })}
-                      className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${selectedBlock.color === color ? 'border-white scale-110' : 'border-transparent'}`}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${selectedBlock.color === color ? 'border-white scale-110' : 'border-transparent'}`}
                       style={{ backgroundColor: color }}
                     />
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2">
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   onClick={() => rotateBlock(selectedId)}
-                  className="flex items-center justify-center gap-2 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-medium transition-colors"
                 >
                   <RotateCw size={14} /> 旋转
                 </button>
                 <button
                   onClick={() => bringToFront(selectedId)}
-                  className="flex items-center justify-center gap-2 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-medium transition-colors"
                 >
                   <Layers size={14} /> 置顶
                 </button>
                 <button
                   onClick={() => duplicateBlock(selectedId)}
-                  className="flex items-center justify-center gap-2 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-medium transition-colors"
                 >
                   <Copy size={14} /> 复制
                 </button>
                 <button
                   onClick={() => deleteBlock(selectedId)}
-                  className="flex items-center justify-center gap-2 py-2 px-3 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg text-xs font-medium transition-colors border border-red-900/50"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-xl text-xs font-medium transition-colors border border-red-900/50"
                 >
                   <Trash2 size={14} /> 删除
                 </button>
@@ -361,24 +361,24 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <div className="p-4 border-t border-zinc-100 bg-zinc-50/50 relative">
+        <div className="px-5 py-4 border-t border-zinc-100 bg-zinc-50/50 relative">
           {showClearConfirm ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="absolute inset-0 bg-white p-4 flex items-center justify-between z-10"
+              className="absolute inset-0 bg-white px-5 flex items-center justify-between z-10"
             >
               <span className="text-xs font-bold text-zinc-500">确定清空？</span>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={clearCanvas}
-                  className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 text-white text-[10px] font-bold rounded-xl hover:bg-red-700"
                 >
                   确定
                 </button>
-                <button 
+                <button
                   onClick={() => setShowClearConfirm(false)}
-                  className="px-3 py-1.5 bg-zinc-100 text-zinc-600 text-[10px] font-bold rounded-lg hover:bg-zinc-200"
+                  className="px-4 py-2 bg-zinc-100 text-zinc-600 text-[10px] font-bold rounded-xl hover:bg-zinc-200"
                 >
                   取消
                 </button>
@@ -387,7 +387,7 @@ export default function App() {
           ) : (
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-zinc-500 hover:text-zinc-800 text-xs font-semibold transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 text-zinc-500 hover:text-zinc-800 text-xs font-semibold transition-colors"
             >
               <Undo2 size={14} /> 重置画布
             </button>
@@ -398,16 +398,16 @@ export default function App() {
       {/* Main Canvas Area */}
       <main className="flex-1 relative flex flex-col z-10">
         {/* Toolbar */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white/80 backdrop-blur-md border border-zinc-200 p-1.5 rounded-full shadow-lg">
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-white/80 backdrop-blur-md border border-zinc-200 px-2 py-2 rounded-full shadow-lg">
           <button
             onClick={() => setShowGrid(!showGrid)}
-            className={`p-2 rounded-full transition-colors ${showGrid ? 'bg-blue-100 text-blue-600' : 'hover:bg-zinc-100 text-zinc-500'}`}
+            className={`p-2.5 rounded-full transition-colors ${showGrid ? 'bg-blue-100 text-blue-600' : 'hover:bg-zinc-100 text-zinc-500'}`}
             title="切换网格"
           >
             <Grid3X3 size={18} />
           </button>
           <div className="w-px h-6 bg-zinc-200 mx-1" />
-          <div className="px-3 text-xs font-medium text-zinc-400 flex items-center gap-2">
+          <div className="px-4 text-xs font-medium text-zinc-400 flex items-center gap-2">
             <MousePointer2 size={14} /> 拖拽积木进行组合
           </div>
         </div>
@@ -459,15 +459,15 @@ export default function App() {
                 className={`absolute cursor-grab active:cursor-grabbing ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50' : ''}`}
                 style={{ left: 0, top: 0 }}
               >
-                <BlockShape type={block.type} color={block.color} size={60} />
+                <BlockShape type={block.type} color={block.color} size={64} />
               </motion.div>
             ))}
           </AnimatePresence>
 
           {blocks.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 pointer-events-none">
-              <div className="w-24 h-24 border-4 border-dashed border-zinc-200 rounded-3xl mb-4 flex items-center justify-center">
-                <Plus size={40} />
+              <div className="w-28 h-28 border-4 border-dashed border-zinc-200 rounded-3xl mb-5 flex items-center justify-center">
+                <Plus size={44} />
               </div>
               <p className="text-sm font-medium">从左侧拖拽形状开始搭建</p>
             </div>
@@ -475,12 +475,12 @@ export default function App() {
         </div>
 
         {/* Footer Stats */}
-        <div className="bg-white border-t border-zinc-200 px-6 py-3 flex items-center justify-between text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-          <div className="flex gap-6">
+        <div className="bg-white border-t border-zinc-200 px-8 py-4 flex items-center justify-between text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+          <div className="flex gap-8">
             <span>积木总数: {blocks.length}</span>
             <span>当前层级: {nextZIndex - 1}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             实时保存中
           </div>
