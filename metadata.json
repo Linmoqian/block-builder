@@ -1,0 +1,5 @@
+{
+  "name": "积木创意工坊 (Block Builder)",
+  "description": "一个互动的积木搭建库，你可以从左侧选择各种形状的积木，在右侧画布上自由组合与创作。",
+  "requestFramePermissions": []
+}
