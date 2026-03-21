@@ -16,7 +16,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Code2
+  Code2,
+  Play
 } from 'lucide-react';
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, ShapeType } from './types';
@@ -721,9 +722,24 @@ export default function App() {
                 <Code2 size={16} className="text-blue-500" />
                 代码阅读器
               </h2>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`print('Hello, World!')
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    // 通知后端运行代码
+                    fetch('http://localhost:8080/run', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'run' })
+                    }).catch(() => {});
+                  }}
+                  className="p-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+                  title="运行代码"
+                >
+                  <Play size={14} className="text-white" />
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`print('Hello, World!')
 # 这是一个示例Python代码
 def greet(name):
     return f"Hello, {name}!"
@@ -735,12 +751,13 @@ print(message)
 # 循环示例
 for i in range(5):
     print(f"Count: {i}")`);
-                }}
-                className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors"
-                title="复制代码"
-              >
-                <Copy size={14} className="text-zinc-500" />
-              </button>
+                  }}
+                  className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors"
+                  title="复制代码"
+                >
+                  <Copy size={14} className="text-zinc-500" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden flex flex-col">
               {/* 文件标签 */}

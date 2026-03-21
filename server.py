@@ -64,6 +64,20 @@ class DragHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"status": "ok"}')
 
+        elif self.path == '/run':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode('utf-8'))
+
+            # 输出运行信息到终端
+            print(f"{GREEN}[运行]{RESET} 代码执行请求已接收")
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(b'{"status": "ok"}')
+
         else:
             self.send_response(404)
             self.end_headers()
