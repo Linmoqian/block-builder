@@ -254,6 +254,12 @@ export default function App() {
                     }}
                     onDragStart={() => {
                       setIsAnyItemDragging(true);
+                      // 通知后端
+                      fetch('http://localhost:8080/drag', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: template.type, name: template.label })
+                      }).catch(() => {});
                     }}
                     onDrag={handleTemplateDrag}
                     onDragEnd={(e, info) => {
@@ -432,6 +438,13 @@ export default function App() {
                   setSelectedId(block.id);
                   setIsDraggingExisting(true);
                   setIsAnyItemDragging(true);
+                  // 通知后端
+                  const template = BLOCK_TEMPLATES.find(t => t.type === block.type);
+                  fetch('http://localhost:8080/drag', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: block.type, name: template?.label || block.type })
+                  }).catch(() => {});
                 }}
                 onDragEnd={(e, info) => {
                   setIsAnyItemDragging(false);
