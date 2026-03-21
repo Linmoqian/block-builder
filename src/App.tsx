@@ -13,7 +13,9 @@ import {
   Copy,
   Trash,
   Link2,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, ShapeType } from './types';
@@ -27,6 +29,7 @@ export default function App() {
   const [isDraggingTemplate, setIsDraggingTemplate] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isAnyItemDragging, setIsAnyItemDragging] = useState(false);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const isOverCanvasRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -300,7 +303,7 @@ export default function App() {
             <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white">
               <Plus size={22} />
             </div>
-            积木创意工坊
+            神经网络工坊
           </h1>
           <p className="text-xs text-zinc-500 mt-2 uppercase tracking-wider font-semibold">Block Builder Pro</p>
         </div>
@@ -674,6 +677,19 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* 右侧中央按钮 - 展开/收起右侧边栏 */}
+          <button
+            onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white hover:bg-zinc-100 border border-zinc-200 rounded-full shadow-md flex items-center justify-center transition-colors z-20"
+            title={rightSidebarOpen ? "收起面板" : "展开面板"}
+          >
+            {rightSidebarOpen ? (
+              <ChevronRight size={20} className="text-zinc-600" />
+            ) : (
+              <ChevronLeft size={20} className="text-zinc-600" />
+            )}
+          </button>
         </div>
 
         {/* Footer Stats */}
@@ -688,6 +704,26 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* 右侧边栏 */}
+      <AnimatePresence>
+        {rightSidebarOpen && (
+          <motion.aside
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 280, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white border-l border-zinc-200 flex flex-col shadow-lg z-20 overflow-hidden"
+          >
+            <div className="px-5 py-5 border-b border-zinc-100">
+              <h2 className="text-sm font-bold text-zinc-700">属性面板</h2>
+            </div>
+            <div className="flex-1 p-5 overflow-y-auto">
+              <p className="text-sm text-zinc-500">选择一个积木查看属性</p>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .bg-grid-pattern {
