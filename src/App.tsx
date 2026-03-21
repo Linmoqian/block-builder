@@ -22,6 +22,7 @@ import {
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, ShapeType } from './types';
 import { BlockShape } from './components/BlockShape';
+import { CodeHighlighter } from './components/CodeHighlighter';
 
 export default function App() {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
@@ -34,6 +35,7 @@ export default function App() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const [codeContent, setCodeContent] = useState("print('Hello, World!')");
   const isOverCanvasRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -71,6 +73,26 @@ export default function App() {
       window.removeEventListener('keydown', handleEscape);
     };
   }, []);
+
+  // 定期获取代码文件内容
+  useEffect(() => {
+    if (!rightSidebarOpen) return;
+
+    const fetchCode = () => {
+      fetch('http://localhost:8080/read-file')
+        .then(res => res.json())
+        .then(data => {
+          if (data.content) {
+            setCodeContent(data.content);
+          }
+        })
+        .catch(() => {});
+    };
+
+    fetchCode();
+    const interval = setInterval(fetchCode, 1000);
+    return () => clearInterval(interval);
+  }, [rightSidebarOpen]);
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;
@@ -768,18 +790,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`print('Hello, World!')
-# 这是一个示例Python代码
-def greet(name):
-    return f"Hello, {name}!"
-
-# 调用函数
-message = greet("World")
-print(message)
-
-# 循环示例
-for i in range(5):
-    print(f"Count: {i}")`);
+                    navigator.clipboard.writeText(`print('Hello, World!')`);
                   }}
                   className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors"
                   title="复制代码"
@@ -796,58 +807,7 @@ for i in range(5):
               </div>
               {/* 代码区域 */}
               <div className="flex-1 overflow-auto bg-zinc-900 p-4 font-mono text-sm">
-                <pre className="text-zinc-300 leading-relaxed">
-                  <code>
-                    <span className="text-pink-400">print</span>
-                    <span className="text-zinc-300">(</span>
-                    <span className="text-amber-300">'Hello, World!'</span>
-                    <span className="text-zinc-300">)</span>
-                    {"\n"}
-                    <span className="text-zinc-500"># 这是一个示例Python代码</span>
-                    {"\n"}
-                    <span className="text-purple-400">def</span>
-                    <span className="text-blue-400"> greet</span>
-                    <span className="text-zinc-300">(</span>
-                    <span className="text-orange-400">name</span>
-                    <span className="text-zinc-300">):</span>
-                    {"\n"}
-                    <span className="text-zinc-300">    </span>
-                    <span className="text-purple-400">return</span>
-                    <span className="text-zinc-300"> </span>
-                    <span className="text-amber-300">f"Hello, </span>
-                    <span className="text-blue-300">{"{name}"}</span>
-                    <span className="text-amber-300">!"</span>
-                    {"\n\n"}
-                    <span className="text-zinc-500"># 调用函数</span>
-                    {"\n"}
-                    <span className="text-zinc-300">message = </span>
-                    <span className="text-blue-400">greet</span>
-                    <span className="text-zinc-300">(</span>
-                    <span className="text-amber-300">"World"</span>
-                    <span className="text-zinc-300">)</span>
-                    {"\n"}
-                    <span className="text-pink-400">print</span>
-                    <span className="text-zinc-300">(message)</span>
-                    {"\n\n"}
-                    <span className="text-zinc-500"># 循环示例</span>
-                    {"\n"}
-                    <span className="text-purple-400">for</span>
-                    <span className="text-zinc-300"> i </span>
-                    <span className="text-purple-400">in</span>
-                    <span className="text-blue-400"> range</span>
-                    <span className="text-zinc-300">(</span>
-                    <span className="text-emerald-400">5</span>
-                    <span className="text-zinc-300">):</span>
-                    {"\n"}
-                    <span className="text-zinc-300">    </span>
-                    <span className="text-pink-400">print</span>
-                    <span className="text-zinc-300">(</span>
-                    <span className="text-amber-300">f"Count: </span>
-                    <span className="text-blue-300">{"{i}"}</span>
-                    <span className="text-amber-300">"</span>
-                    <span className="text-zinc-300">)</span>
-                  </code>
-                </pre>
+                <CodeHighlighter code={codeContent} />
               </div>
             </div>
           </motion.aside>
