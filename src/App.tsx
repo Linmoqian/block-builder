@@ -76,13 +76,11 @@ export default function App() {
 
   // 定期获取代码文件内容
   useEffect(() => {
-    if (!rightSidebarOpen) return;
-
     const fetchCode = () => {
       fetch('http://localhost:8080/read-file')
         .then(res => res.json())
         .then(data => {
-          if (data.content) {
+          if (data.content !== undefined) {
             setCodeContent(data.content);
           }
         })
@@ -92,7 +90,7 @@ export default function App() {
     fetchCode();
     const interval = setInterval(fetchCode, 1000);
     return () => clearInterval(interval);
-  }, [rightSidebarOpen]);
+  }, []);
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;

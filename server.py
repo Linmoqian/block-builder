@@ -17,6 +17,34 @@ RESET = '\033[0m'
 
 
 class DragHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        """处理 GET 请求"""
+        if self.path == '/read-file':
+            # 读取 sample.py 文件内容
+            try:
+                with open('TmpSrc/sample.py', 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'content': content, 'success': True}).encode('utf-8'))
+            except FileNotFoundError:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'content': '# 文件不存在\n# 请创建 TmpSrc/sample.py', 'success': False}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'content': f'# 读取错误: {str(e)}', 'success': False}).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+
     def do_OPTIONS(self):
         """处理 CORS 预检请求"""
         self.send_response(200)
@@ -87,13 +115,19 @@ class DragHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                self.wfile.write(json.dumps({'content': content}).encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
+                self.wfile.write(json.dumps({'content': content, 'success': True}).encode('utf-8'))
+            except FileNotFoundError:
+                self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+                self.wfile.write(json.dumps({'content': '# 文件不存在\n# 请创建 TmpSrc/sample.py', 'success': False}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'content': f'# 读取错误: {str(e)}', 'success': False}).encode('utf-8'))
 
         else:
             self.send_response(404)
