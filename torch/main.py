@@ -3,17 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def data_loader():
+    """模拟数据加载器：生成随机图像数据"""
+    for _ in range(10):  # 10个batch
+        yield torch.randn(32, 1, 28, 28), torch.randint(0, 10, (32,))
+
+
 def CNN():
-    """卷积神经网络：图像分类 (输入 1x28x28, 输出 10类)"""
+    """单层卷积神经网络：图像分类 (输入 1x28x28, 输出 10类)"""
     return nn.Sequential(
         nn.Conv2d(1, 16, 3, padding=1),   # 1x28x28 -> 16x28x28
         nn.ReLU(),
-        nn.MaxPool2d(2),                   # 16x28x28 -> 16x14x14
-        nn.Conv2d(16, 32, 3, padding=1),  # 16x14x14 -> 32x14x14
-        nn.ReLU(),
-        nn.MaxPool2d(2),                   # 32x14x14 -> 32x7x7
+        nn.MaxPool2d(4),                   # 16x28x28 -> 16x7x7
         nn.Flatten(),
-        nn.Linear(32 * 7 * 7, 10)
+        nn.Linear(16 * 7 * 7, 10)
     )
 
 
@@ -102,6 +105,37 @@ class ScaledDotProductAttention(nn.Module):
         attn = F.softmax(scores, dim=-1)
         return torch.matmul(attn, v)
 
+def train():
+    """训练单层CNN"""
+    model = CNN()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
+
+    print("\033[36m开始训练单层CNN...\033[0m")
+
+    for epoch in range(5):
+        total_loss = 0
+        correct = 0
+        total = 0
+
+        for batch_idx, (data, target) in enumerate(data_loader()):
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            pred = output.argmax(dim=1)
+            correct += (pred == target).sum().item()
+            total += target.size(0)
+
+        acc = 100 * correct / total
+        print(f"Epoch {epoch+1}/5 | Loss: {total_loss:.4f} | Acc: {acc:.1f}%")
+
+    print("\033[32m训练完成\033[0m")
+    return model
+
+
 if __name__ == "__main__":
-    model= CNN()
-    print(model)
+    train()
