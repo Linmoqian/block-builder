@@ -1,8 +1,0 @@
-print("我是正方形")
-print("我是正方形")
-print("我是长方形(横)")
-print("我是长方形(纵)")
-print("我是圆形")
-print("我是三角形")
-print("我是L型")
-print("我是T型")

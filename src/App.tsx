@@ -146,7 +146,7 @@ export default function App() {
   const addBlockAt = (type: ShapeType, color: string, x: number, y: number) => {
     // Apply snapping for new blocks
     const { x: finalX, y: finalY } = findSnapPosition(null, x, y, blocks);
-    
+
     const newBlock: BlockInstance = {
       id: Math.random().toString(36).substr(2, 9),
       type,
@@ -159,6 +159,14 @@ export default function App() {
     setBlocks(prev => [...prev, newBlock]);
     setSelectedId(newBlock.id);
     setNextZIndex(prev => prev + 1);
+
+    // 通知后端添加积木（只有新建积木时才通知）
+    const template = BLOCK_TEMPLATES.find(t => t.type === type);
+    fetch('http://localhost:8080/drag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newBlock.id, type, name: template?.label || type })
+    }).catch(() => {});
   };
 
   const updateBlock = (id: string, updates: Partial<BlockInstance>) => {
@@ -166,6 +174,18 @@ export default function App() {
   };
 
   const deleteBlock = (id: string) => {
+    const block = blocks.find(b => b.id === id);
+
+    // 通知后端删除积木
+    if (block) {
+      const template = BLOCK_TEMPLATES.find(t => t.type === block.type);
+      fetch('http://localhost:8080/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, name: template?.label || block.type })
+      }).catch(() => {});
+    }
+
     setBlocks(prev => prev.filter(b => b.id !== id));
     if (selectedId === id) setSelectedId(null);
   };
@@ -354,12 +374,6 @@ export default function App() {
                     }}
                     onDragStart={() => {
                       setIsAnyItemDragging(true);
-                      // 通知后端
-                      fetch('http://localhost:8080/drag', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: template.type, name: template.label })
-                      }).catch(() => {});
                     }}
                     onDrag={handleTemplateDrag}
                     onDragEnd={(e, info) => {
@@ -542,13 +556,7 @@ export default function App() {
                   setSelectedId(block.id);
                   setIsDraggingExisting(true);
                   setIsAnyItemDragging(true);
-                  // 通知后端
-                  const template = BLOCK_TEMPLATES.find(t => t.type === block.type);
-                  fetch('http://localhost:8080/drag', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: block.type, name: template?.label || block.type })
-                  }).catch(() => {});
+                  // 移动已有积木时不通知后端添加代码
                 }}
                 onDrag={(e, info) => {
                   // 更新实时位置用于连接线跟踪 (使用 offset 而不是 delta)
