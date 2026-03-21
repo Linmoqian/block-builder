@@ -32,6 +32,8 @@ export default function App() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isAnyItemDragging, setIsAnyItemDragging] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
+  const [isResizing, setIsResizing] = useState(false);
   const isOverCanvasRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -712,11 +714,38 @@ export default function App() {
         {rightSidebarOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
+            animate={{ width: rightSidebarWidth, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white border-l border-zinc-200 flex flex-col shadow-lg z-20 overflow-hidden"
+            className="bg-white border-l border-zinc-200 flex flex-col shadow-lg z-20 overflow-hidden relative"
+            style={{ width: rightSidebarWidth }}
           >
+            {/* 拖拽调整宽度的手柄 */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue-500 transition-colors z-10"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsResizing(true);
+                const startX = e.clientX;
+                const startWidth = rightSidebarWidth;
+
+                const handleMouseMove = (e: MouseEvent) => {
+                  const newWidth = startWidth - (e.clientX - startX);
+                  if (newWidth >= 280 && newWidth <= 600) {
+                    setRightSidebarWidth(newWidth);
+                  }
+                };
+
+                const handleMouseUp = () => {
+                  setIsResizing(false);
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+            />
             <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
               <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-2">
                 <Code2 size={16} className="text-blue-500" />
