@@ -66,6 +66,21 @@ class DragHandler(BaseHTTPRequestHandler):
             # 输出积木名称到终端
             print(f"{CYAN}[拖拽]{RESET} {GREEN}{block_name}{RESET} ({BLUE}{block_type}{RESET})")
 
+            # 根据积木类型写入对应的 print 语句到 sample.py
+            print_map = {
+                'square': 'print("我是正方形")',
+                'rect-h': 'print("我是长方形(横)")',
+                'rect-v': 'print("我是长方形(纵)")',
+                'circle': 'print("我是圆形")',
+                'triangle': 'print("我是三角形")',
+                'l-shape': 'print("我是L型")',
+                't-shape': 'print("我是T型")',
+            }
+
+            print_statement = print_map.get(block_type, f'# 未知积木')
+            with open('TmpSrc/sample.py', 'a', encoding='utf-8') as f:
+                f.write(print_statement + '\n')
+
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -106,14 +121,19 @@ class DragHandler(BaseHTTPRequestHandler):
                     timeout=10
                 )
 
-                # 输出到终端
+                # 输出到终端 - 分配9行独立区域
                 print(f"\n{GREEN}[运行]{RESET} 执行 TmpSrc/sample.py")
-                print(f"{BLUE}{'─' * 40}{RESET}")
+                print(f"{BLUE}{'─' * 9}{RESET}")
                 if result.stdout:
-                    print(result.stdout.rstrip())
+                    for line in result.stdout.strip().split('\n'):
+                        print(f"  {line}")
                 if result.stderr:
-                    print(f"{YELLOW}{result.stderr.rstrip()}{RESET}")
-                print(f"{BLUE}{'─' * 40}{RESET}\n")
+                    for line in result.stderr.strip().split('\n'):
+                        print(f"  {YELLOW}{line}{RESET}")
+                if not result.stdout and not result.stderr:
+                    print(f"  {GRAY}(无输出){RESET}")
+                print(f"{BLUE}{'─' * 9}{RESET}")
+                print(f"{GREEN}[完成]{RESET} 返回码: {result.returncode}\n")
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
