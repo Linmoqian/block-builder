@@ -95,16 +95,56 @@ class DragHandler(BaseHTTPRequestHandler):
         elif self.path == '/run':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
-            data = json.loads(body.decode('utf-8'))
 
-            # 输出运行信息到终端
-            print(f"{GREEN}[运行]{RESET} 代码执行请求已接收")
+            # 执行 sample.py 文件
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ['python', 'TmpSrc/sample.py'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{"status": "ok"}')
+                # 输出到终端
+                print(f"\n{GREEN}[运行]{RESET} 执行 TmpSrc/sample.py")
+                print(f"{BLUE}{'─' * 40}{RESET}")
+                if result.stdout:
+                    print(result.stdout.rstrip())
+                if result.stderr:
+                    print(f"{YELLOW}{result.stderr.rstrip()}{RESET}")
+                print(f"{BLUE}{'─' * 40}{RESET}\n")
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'ok',
+                    'stdout': result.stdout,
+                    'stderr': result.stderr,
+                    'returncode': result.returncode
+                }).encode('utf-8'))
+            except subprocess.TimeoutExpired:
+                print(f"{YELLOW}[运行]{RESET} 执行超时")
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'error',
+                    'error': '执行超时 (10秒)'
+                }).encode('utf-8'))
+            except Exception as e:
+                print(f"{YELLOW}[运行]{RESET} 执行失败: {str(e)}")
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'error',
+                    'error': str(e)
+                }).encode('utf-8'))
 
         elif self.path == '/read-file':
             # 读取 sample.py 文件内容
