@@ -42,6 +42,9 @@ export default function App() {
   // 连接模式
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
 
+  // 拖动时的实时位置 (用于连接线跟踪)
+  const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
+
   // 点击外部关闭右键菜单
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -520,8 +523,21 @@ export default function App() {
                     body: JSON.stringify({ type: block.type, name: template?.label || block.type })
                   }).catch(() => {});
                 }}
+                onDrag={(e, info) => {
+                  // 更新实时位置用于连接线跟踪 (使用 offset 而不是 delta)
+                  setDragPositions(prev => ({
+                    ...prev,
+                    [block.id]: { x: block.x + info.offset.x, y: block.y + info.offset.y }
+                  }));
+                }}
                 onDragEnd={(e, info) => {
                   setIsAnyItemDragging(false);
+                  // 清除实时位置
+                  setDragPositions(prev => {
+                    const newPositions = { ...prev };
+                    delete newPositions[block.id];
+                    return newPositions;
+                  });
                   handleBlockDragEnd(block.id, info);
                 }}
                 initial={{ scale: 0, opacity: 0 }}
@@ -570,17 +586,24 @@ export default function App() {
               return connectedTo.map(targetId => {
                 const targetBlock = blocks.find(b => b.id === targetId);
                 if (!targetBlock || block.id > targetId) return null; // 避免重复绘制
+
+                // 使用实时位置（拖动中）或静态位置
+                const x1 = (dragPositions[block.id]?.x ?? block.x) + 32;
+                const y1 = (dragPositions[block.id]?.y ?? block.y) + 32;
+                const x2 = (dragPositions[targetId]?.x ?? targetBlock.x) + 32;
+                const y2 = (dragPositions[targetId]?.y ?? targetBlock.y) + 32;
+
                 return (
                   <line
                     key={`${block.id}-${targetId}`}
-                    x1={block.x + 32}
-                    y1={block.y + 32}
-                    x2={targetBlock.x + 32}
-                    y2={targetBlock.y + 32}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
                     stroke="#3b82f6"
                     strokeWidth="2"
                     strokeDasharray="5,5"
-                    className="animate-pulse"
+                    className="transition-all duration-75"
                   />
                 );
               });
