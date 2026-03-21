@@ -1,20 +1,15 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 积木库
 
-# Run and deploy your AI Studio app
+一个积木为一个代码
+实时同步 @TmpSrc\sample.py 的代码
 
-This contains everything you need to run your app locally.
+# 快速开始
 
-View your app in AI Studio: https://ai.studio/apps/5e0308f9-0a76-4032-872e-d149149f6b7f
+git clone https://github.com/Linmoqian/block-builder
+cd block-builder
+conda env create -f environment.yml
+npm install 
+npm run dev 
+python server.py   
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+#
