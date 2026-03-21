@@ -8,6 +8,12 @@ export interface BlockInstance {
   color: string;
   rotation: number;
   zIndex: number;
+  connectedTo?: string[]; // 连接的其他积木ID
+}
+
+export interface Connection {
+  from: string;
+  to: string;
 }
 
 export interface BlockTemplate {

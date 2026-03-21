@@ -1,17 +1,19 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Plus, 
-  Trash2, 
-  RotateCw, 
-  Layers, 
-  Download, 
-  Undo2, 
+import {
+  Plus,
+  Trash2,
+  RotateCw,
+  Layers,
+  Download,
+  Undo2,
   Grid3X3,
   MousePointer2,
   Palette,
   Copy,
-  Trash
+  Trash,
+  Link2,
+  X
 } from 'lucide-react';
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, ShapeType } from './types';
@@ -29,6 +31,36 @@ export default function App() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [nextZIndex, setNextZIndex] = useState(1);
+
+  // 右键菜单状态
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    blockId: string;
+  } | null>(null);
+
+  // 连接模式
+  const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+
+  // 点击外部关闭右键菜单
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    const handleResize = () => setContextMenu(null);
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setContextMenu(null);
+        setConnectingFrom(null);
+      }
+    };
+    window.addEventListener('click', handleClick);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('click', handleClick);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;
@@ -129,10 +161,48 @@ export default function App() {
         x: block.x + 24,
         y: block.y + 24,
         zIndex: nextZIndex,
+        connectedTo: [], // 复制时不保留连接
       };
       setBlocks(prev => [...prev, newBlock]);
       setSelectedId(newBlock.id);
       setNextZIndex(prev => prev + 1);
+    }
+  };
+
+  // 连接两个积木
+  const connectBlocks = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+
+    setBlocks(prev => prev.map(block => {
+      if (block.id === fromId) {
+        const connectedTo = block.connectedTo || [];
+        if (!connectedTo.includes(toId)) {
+          return { ...block, connectedTo: [...connectedTo, toId] };
+        }
+      }
+      if (block.id === toId) {
+        const connectedTo = block.connectedTo || [];
+        if (!connectedTo.includes(fromId)) {
+          return { ...block, connectedTo: [...connectedTo, fromId] };
+        }
+      }
+      return block;
+    }));
+
+    // 通知后端
+    const fromBlock = blocks.find(b => b.id === fromId);
+    const toBlock = blocks.find(b => b.id === toId);
+    if (fromBlock && toBlock) {
+      const fromTemplate = BLOCK_TEMPLATES.find(t => t.type === fromBlock.type);
+      const toTemplate = BLOCK_TEMPLATES.find(t => t.type === toBlock.type);
+      fetch('http://localhost:8080/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: { type: fromBlock.type, name: fromTemplate?.label },
+          to: { type: toBlock.type, name: toTemplate?.label }
+        })
+      }).catch(() => {});
     }
   };
 
@@ -419,10 +489,14 @@ export default function App() {
         </div>
 
         {/* Canvas */}
-        <div 
+        <div
           ref={canvasRef}
           className={`flex-1 relative transition-colors ${showGrid ? 'bg-grid-pattern' : 'bg-zinc-50'}`}
-          onClick={() => setSelectedId(null)}
+          onClick={() => {
+            setSelectedId(null);
+            setContextMenu(null);
+            setConnectingFrom(null);
+          }}
           style={{
             backgroundImage: showGrid ? 'radial-gradient(#e5e7eb 1px, transparent 1px)' : 'none',
             backgroundSize: '24px 24px'
@@ -467,15 +541,51 @@ export default function App() {
                 exit={{ scale: 0, opacity: 0 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  // 处理连接模式
+                  if (connectingFrom && connectingFrom !== block.id) {
+                    connectBlocks(connectingFrom, block.id);
+                    setConnectingFrom(null);
+                    return;
+                  }
                   setSelectedId(block.id);
+                  setContextMenu(null);
                 }}
-                className={`absolute cursor-grab active:cursor-grabbing ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50' : ''}`}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setContextMenu({ x: e.clientX, y: e.clientY, blockId: block.id });
+                }}
+                className={`absolute cursor-grab active:cursor-grabbing ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50' : ''} ${connectingFrom === block.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
                 style={{ left: 0, top: 0 }}
               >
                 <BlockShape type={block.type} color={block.color} size={64} />
               </motion.div>
             ))}
           </AnimatePresence>
+
+          {/* 连接线 */}
+          <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
+            {blocks.map(block => {
+              const connectedTo = block.connectedTo || [];
+              return connectedTo.map(targetId => {
+                const targetBlock = blocks.find(b => b.id === targetId);
+                if (!targetBlock || block.id > targetId) return null; // 避免重复绘制
+                return (
+                  <line
+                    key={`${block.id}-${targetId}`}
+                    x1={block.x + 32}
+                    y1={block.y + 32}
+                    x2={targetBlock.x + 32}
+                    y2={targetBlock.y + 32}
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    strokeDasharray="5,5"
+                    className="animate-pulse"
+                  />
+                );
+              });
+            })}
+          </svg>
 
           {blocks.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 pointer-events-none">
@@ -485,6 +595,62 @@ export default function App() {
               <p className="text-sm font-medium">从左侧拖拽形状开始搭建</p>
             </div>
           )}
+
+          {/* 右键菜单 */}
+          <AnimatePresence>
+            {contextMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="fixed bg-white rounded-xl shadow-2xl border border-zinc-200 py-2 min-w-[140px] z-[9999]"
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => {
+                    duplicateBlock(contextMenu.blockId);
+                    setContextMenu(null);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-zinc-100 flex items-center gap-3 text-zinc-700"
+                >
+                  <Copy size={16} />
+                  复制
+                </button>
+                <button
+                  onClick={() => {
+                    setConnectingFrom(contextMenu.blockId);
+                    setContextMenu(null);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center gap-3 text-blue-600"
+                >
+                  <Link2 size={16} />
+                  连接
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 连接模式提示 */}
+          <AnimatePresence>
+            {connectingFrom && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 z-50"
+              >
+                <Link2 size={18} />
+                <span className="text-sm font-medium">点击另一个积木建立连接</span>
+                <button
+                  onClick={() => setConnectingFrom(null)}
+                  className="ml-2 hover:bg-blue-700 rounded-full p-1"
+                >
+                  <X size={16} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Footer Stats */}
