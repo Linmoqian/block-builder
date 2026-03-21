@@ -15,7 +15,8 @@ import {
   Link2,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Code2
 } from 'lucide-react';
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, ShapeType } from './types';
@@ -715,11 +716,93 @@ export default function App() {
             transition={{ duration: 0.3 }}
             className="bg-white border-l border-zinc-200 flex flex-col shadow-lg z-20 overflow-hidden"
           >
-            <div className="px-5 py-5 border-b border-zinc-100">
-              <h2 className="text-sm font-bold text-zinc-700">属性面板</h2>
+            <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-2">
+                <Code2 size={16} className="text-blue-500" />
+                代码阅读器
+              </h2>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`print('Hello, World!')
+# 这是一个示例Python代码
+def greet(name):
+    return f"Hello, {name}!"
+
+# 调用函数
+message = greet("World")
+print(message)
+
+# 循环示例
+for i in range(5):
+    print(f"Count: {i}")`);
+                }}
+                className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors"
+                title="复制代码"
+              >
+                <Copy size={14} className="text-zinc-500" />
+              </button>
             </div>
-            <div className="flex-1 p-5 overflow-y-auto">
-              <p className="text-sm text-zinc-500">选择一个积木查看属性</p>
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {/* 文件标签 */}
+              <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
+                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono">main.py</span>
+                <span className="text-xs text-zinc-400">Python</span>
+              </div>
+              {/* 代码区域 */}
+              <div className="flex-1 overflow-auto bg-zinc-900 p-4 font-mono text-sm">
+                <pre className="text-zinc-300 leading-relaxed">
+                  <code>
+                    <span className="text-pink-400">print</span>
+                    <span className="text-zinc-300">(</span>
+                    <span className="text-amber-300">'Hello, World!'</span>
+                    <span className="text-zinc-300">)</span>
+                    {"\n"}
+                    <span className="text-zinc-500"># 这是一个示例Python代码</span>
+                    {"\n"}
+                    <span className="text-purple-400">def</span>
+                    <span className="text-blue-400"> greet</span>
+                    <span className="text-zinc-300">(</span>
+                    <span className="text-orange-400">name</span>
+                    <span className="text-zinc-300">):</span>
+                    {"\n"}
+                    <span className="text-zinc-300">    </span>
+                    <span className="text-purple-400">return</span>
+                    <span className="text-zinc-300"> </span>
+                    <span className="text-amber-300">f"Hello, </span>
+                    <span className="text-blue-300">{"{name}"}</span>
+                    <span className="text-amber-300">!"</span>
+                    {"\n\n"}
+                    <span className="text-zinc-500"># 调用函数</span>
+                    {"\n"}
+                    <span className="text-zinc-300">message = </span>
+                    <span className="text-blue-400">greet</span>
+                    <span className="text-zinc-300">(</span>
+                    <span className="text-amber-300">"World"</span>
+                    <span className="text-zinc-300">)</span>
+                    {"\n"}
+                    <span className="text-pink-400">print</span>
+                    <span className="text-zinc-300">(message)</span>
+                    {"\n\n"}
+                    <span className="text-zinc-500"># 循环示例</span>
+                    {"\n"}
+                    <span className="text-purple-400">for</span>
+                    <span className="text-zinc-300"> i </span>
+                    <span className="text-purple-400">in</span>
+                    <span className="text-blue-400"> range</span>
+                    <span className="text-zinc-300">(</span>
+                    <span className="text-emerald-400">5</span>
+                    <span className="text-zinc-300">):</span>
+                    {"\n"}
+                    <span className="text-zinc-300">    </span>
+                    <span className="text-pink-400">print</span>
+                    <span className="text-zinc-300">(</span>
+                    <span className="text-amber-300">f"Count: </span>
+                    <span className="text-blue-300">{"{i}"}</span>
+                    <span className="text-amber-300">"</span>
+                    <span className="text-zinc-300">)</span>
+                  </code>
+                </pre>
+              </div>
             </div>
           </motion.aside>
         )}
