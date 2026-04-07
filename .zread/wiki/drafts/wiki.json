@@ -1,0 +1,242 @@
+{
+  "id": "2026-04-07-145345",
+  "generated_at": "2026-04-07T06:53:45.632072Z",
+  "language": "zh",
+  "pages": [
+    {
+      "slug": "1-xiang-mu-gai-shu",
+      "title": "项目概述",
+      "file": "1-xiang-mu-gai-shu.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "2-kuai-su-kai-shi",
+      "title": "快速开始",
+      "file": "2-kuai-su-kai-shi.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "3-kai-fa-huan-jing-pei-zhi",
+      "title": "开发环境配置",
+      "file": "3-kai-fa-huan-jing-pei-zhi.md",
+      "section": "入门指南",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "4-xiang-mu-jie-gou-shuo-ming",
+      "title": "项目结构说明",
+      "file": "4-xiang-mu-jie-gou-shuo-ming.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "5-ji-mu-xi-tong-jia-gou",
+      "title": "积木系统架构",
+      "file": "5-ji-mu-xi-tong-jia-gou.md",
+      "section": "核心概念",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "6-qi-chong-ji-mu-xing-zhuang",
+      "title": "七种积木形状",
+      "file": "6-qi-chong-ji-mu-xing-zhuang.md",
+      "section": "核心概念",
+      "level": "Beginner"
+    },
+    {
+      "slug": "7-wang-ge-dui-qi-ji-zhi",
+      "title": "网格对齐机制",
+      "file": "7-wang-ge-dui-qi-ji-zhi.md",
+      "section": "核心概念",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "8-ji-mu-lian-jie-gong-neng",
+      "title": "积木连接功能",
+      "file": "8-ji-mu-lian-jie-gong-neng.md",
+      "section": "核心概念",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "9-yan-se-zhu-ti-xi-tong",
+      "title": "颜色主题系统",
+      "file": "9-yan-se-zhu-ti-xi-tong.md",
+      "section": "核心概念",
+      "level": "Beginner"
+    },
+    {
+      "slug": "10-zhu-ying-yong-zhuang-tai-guan-li",
+      "title": "主应用状态管理",
+      "file": "10-zhu-ying-yong-zhuang-tai-guan-li.md",
+      "section": "前端实现",
+      "level": "Advanced"
+    },
+    {
+      "slug": "11-tuo-zhuai-jiao-hu-shi-xian",
+      "title": "拖拽交互实现",
+      "file": "11-tuo-zhuai-jiao-hu-shi-xian.md",
+      "section": "前端实现",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "12-ji-mu-xing-zhuang-xuan-ran-zu-jian",
+      "title": "积木形状渲染组件",
+      "file": "12-ji-mu-xing-zhuang-xuan-ran-zu-jian.md",
+      "section": "前端实现",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "13-dai-ma-gao-liang-xian-shi-zu-jian",
+      "title": "代码高亮显示组件",
+      "file": "13-dai-ma-gao-liang-xian-shi-zu-jian.md",
+      "section": "前端实现",
+      "level": "Advanced"
+    },
+    {
+      "slug": "14-dong-hua-xiao-guo-yu-guo-du",
+      "title": "动画效果与过渡",
+      "file": "14-dong-hua-xiao-guo-yu-guo-du.md",
+      "section": "前端实现",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "15-zuo-ce-mo-ban-lan",
+      "title": "左侧模板栏",
+      "file": "15-zuo-ce-mo-ban-lan.md",
+      "section": "前端实现",
+      "group": "用户界面",
+      "level": "Beginner"
+    },
+    {
+      "slug": "16-zhong-yang-hua-bu-qu-yu",
+      "title": "中央画布区域",
+      "file": "16-zhong-yang-hua-bu-qu-yu.md",
+      "section": "前端实现",
+      "group": "用户界面",
+      "level": "Beginner"
+    },
+    {
+      "slug": "17-you-ce-dai-ma-yu-lan-lan",
+      "title": "右侧代码预览栏",
+      "file": "17-you-ce-dai-ma-yu-lan-lan.md",
+      "section": "前端实现",
+      "group": "用户界面",
+      "level": "Beginner"
+    },
+    {
+      "slug": "18-gong-ju-lan-gong-neng",
+      "title": "工具栏功能",
+      "file": "18-gong-ju-lan-gong-neng.md",
+      "section": "前端实现",
+      "group": "用户界面",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "19-python-http-fu-wu-qi",
+      "title": "Python HTTP 服务器",
+      "file": "19-python-http-fu-wu-qi.md",
+      "section": "后端服务",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "20-ji-mu-shi-jian-jian-ting",
+      "title": "积木事件监听",
+      "file": "20-ji-mu-shi-jian-jian-ting.md",
+      "section": "后端服务",
+      "level": "Advanced"
+    },
+    {
+      "slug": "21-dai-ma-wen-jian-tong-bu-ji-zhi",
+      "title": "代码文件同步机制",
+      "file": "21-dai-ma-wen-jian-tong-bu-ji-zhi.md",
+      "section": "后端服务",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "22-dai-ma-zhi-xing-gong-neng",
+      "title": "代码执行功能",
+      "file": "22-dai-ma-zhi-xing-gong-neng.md",
+      "section": "后端服务",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "23-cors-kua-yu-chu-li",
+      "title": "CORS 跨域处理",
+      "file": "23-cors-kua-yu-chu-li.md",
+      "section": "后端服务",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "24-react-19-te-xing-ying-yong",
+      "title": "React 19 特性应用",
+      "file": "24-react-19-te-xing-ying-yong.md",
+      "section": "技术栈详解",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "25-vite-6-gou-jian-pei-zhi",
+      "title": "Vite 6 构建配置",
+      "file": "25-vite-6-gou-jian-pei-zhi.md",
+      "section": "技术栈详解",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "26-tailwind-css-v4-yang-shi-xi-tong",
+      "title": "Tailwind CSS v4 样式系统",
+      "file": "26-tailwind-css-v4-yang-shi-xi-tong.md",
+      "section": "技术栈详解",
+      "level": "Beginner"
+    },
+    {
+      "slug": "27-motion-dong-hua-ku-shi-yong",
+      "title": "Motion 动画库使用",
+      "file": "27-motion-dong-hua-ku-shi-yong.md",
+      "section": "技术栈详解",
+      "level": "Advanced"
+    },
+    {
+      "slug": "28-typescript-lei-xing-ding-yi",
+      "title": "TypeScript 类型定义",
+      "file": "28-typescript-lei-xing-ding-yi.md",
+      "section": "技术栈详解",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "29-shi-shi-dai-ma-sheng-cheng-yuan-li",
+      "title": "实时代码生成原理",
+      "file": "29-shi-shi-dai-ma-sheng-cheng-yuan-li.md",
+      "section": "进阶主题",
+      "level": "Advanced"
+    },
+    {
+      "slug": "30-qian-hou-duan-tong-xin-xie-yi",
+      "title": "前后端通信协议",
+      "file": "30-qian-hou-duan-tong-xin-xie-yi.md",
+      "section": "进阶主题",
+      "level": "Advanced"
+    },
+    {
+      "slug": "31-python-yu-fa-fen-xi-qi",
+      "title": "Python 语法分析器",
+      "file": "31-python-yu-fa-fen-xi-qi.md",
+      "section": "进阶主题",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "32-dai-ma-zhu-ti-ding-zhi",
+      "title": "代码主题定制",
+      "file": "32-dai-ma-zhu-ti-ding-zhi.md",
+      "section": "进阶主题",
+      "level": "Advanced"
+    },
+    {
+      "slug": "33-ji-mu-mo-ban-kuo-zhan",
+      "title": "积木模板扩展",
+      "file": "33-ji-mu-mo-ban-kuo-zhan.md",
+      "section": "进阶主题",
+      "level": "Intermediate"
+    }
+  ]
+}
