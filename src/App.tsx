@@ -20,7 +20,7 @@ import {
   Play
 } from 'lucide-react';
 import { useDragControls } from 'motion/react';
-import { BlockInstance, BLOCK_TEMPLATES, COLORS, AllBlockType, ShapeType } from './types';
+import { BlockInstance, BLOCK_TEMPLATES, COLORS, AllBlockType, ShapeType, BLOCK_PORTS } from './types';
 import { BlockShape } from './components/BlockShape';
 import { CodeHighlighter } from './components/CodeHighlighter';
 import { NETWORK_TEMPLATES } from './config/networkBlocks';
@@ -54,6 +54,14 @@ export default function App() {
 
   // 连接模式
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+
+  // 提示信息
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   // 拖动时的实时位置 (用于连接线跟踪)
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
@@ -239,6 +247,39 @@ export default function App() {
   const connectBlocks = (fromId: string, toId: string) => {
     if (fromId === toId) return;
 
+    const fromBlock = blocks.find(b => b.id === fromId);
+    const toBlock = blocks.find(b => b.id === toId);
+
+    if (!fromBlock || !toBlock) return;
+
+    // 连接约束逻辑：获取这两种组件的端口限制（如果没有默认当作1:1处理）
+    const fromLimits = BLOCK_PORTS[fromBlock.type] || { maxInputs: 1, maxOutputs: 1 };
+    const toLimits = BLOCK_PORTS[toBlock.type] || { maxInputs: 1, maxOutputs: 1 };
+
+    // 计算当前已经有的连接数量 (基于 connectedTo 数据结构)
+    const fromOutputCount = fromBlock.connectedTo ? fromBlock.connectedTo.length : 0;
+    const toInputCount = blocks.filter(b => b.connectedTo && b.connectedTo.includes(toId)).length;
+
+    if (fromOutputCount >= fromLimits.maxOutputs) {
+      showToast(`${fromBlock.label || fromBlock.type} 无法添加更多输出连接！(最大: ${fromLimits.maxOutputs})`);
+      return;
+    }
+
+    if (toInputCount >= toLimits.maxInputs) {
+      showToast(`${toBlock.label || toBlock.type} 无法接受更多输入连接！(最大: ${toLimits.maxInputs})`);
+      return;
+    }
+
+    // 检查是否已经存在反向或重复连接，避免循环和复用
+    const outputList = fromBlock.connectedTo || [];
+    const isAlreadyConnected = outputList.includes(toId);
+    const isReverseConnected = (toBlock.connectedTo || []).includes(fromId);
+
+    if (isAlreadyConnected || isReverseConnected) {
+      showToast('这两个积木已存在连接！');
+      return;
+    }
+
     setBlocks(prev => prev.map(block => {
       // 只有从发送方连接到接收方，变成有向图的边，不需要反向
       if (block.id === fromId) {
@@ -250,9 +291,9 @@ export default function App() {
       return block;
     }));
 
+    showToast('连接成功！');
+
     // 通知后端
-    const fromBlock = blocks.find(b => b.id === fromId);
-    const toBlock = blocks.find(b => b.id === toId);
     if (fromBlock && toBlock) {
       const fromTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === fromBlock.type);
       const toTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === toBlock.type);
@@ -764,6 +805,20 @@ export default function App() {
                 >
                   <X size={16} />
                 </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Toast Notification */}
+          <AnimatePresence>
+            {toastMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -20, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, x: '-50%' }}
+                exit={{ opacity: 0, y: -20, x: '-50%' }}
+                className="absolute top-20 left-1/2 z-50 px-4 py-2 bg-slate-800 text-white rounded-lg shadow-lg"
+              >
+                {toastMessage}
               </motion.div>
             )}
           </AnimatePresence>

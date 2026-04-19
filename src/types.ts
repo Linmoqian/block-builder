@@ -47,3 +47,23 @@ export const COLORS = [
   '#6366f1', // indigo
   '#14b8a6', // teal
 ];
+
+export const BLOCK_PORTS: Record<string, { maxInputs: number; maxOutputs: number }> = {
+  // Shape defaults
+  'square': { maxInputs: 1, maxOutputs: 1 },
+  'rect-h': { maxInputs: 1, maxOutputs: 1 },
+  'rect-v': { maxInputs: 1, maxOutputs: 1 },
+  'circle': { maxInputs: 1, maxOutputs: 1 },
+  'triangle': { maxInputs: 1, maxOutputs: 1 },
+  'l-shape': { maxInputs: 1, maxOutputs: 1 },
+  't-shape': { maxInputs: 1, maxOutputs: 1 },
+  
+  // Network defaults
+  'RandomData': { maxInputs: 0, maxOutputs: 1 },
+  'Linear': { maxInputs: 1, maxOutputs: 1 },
+  'Conv2d': { maxInputs: 1, maxOutputs: 1 },
+  'ReLU': { maxInputs: 1, maxOutputs: 1 },
+  'Dropout': { maxInputs: 1, maxOutputs: 1 },
+  'CrossEntropy': { maxInputs: 2, maxOutputs: 1 },
+  'Adam': { maxInputs: 1, maxOutputs: 0 }
+};
