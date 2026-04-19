@@ -1,5 +1,5 @@
 export type ShapeType = 'square' | 'rect-h' | 'rect-v' | 'circle' | 'triangle' | 'l-shape' | 't-shape';
-export type NetworkLayerType = 'Linear' | 'Conv2d' | 'ReLU' | 'Dropout' | 'CrossEntropy' | 'Adam';
+export type NetworkLayerType = 'Linear' | 'Conv2d' | 'ReLU' | 'Dropout' | 'CrossEntropy' | 'Adam' | 'RandomData';
 export type AllBlockType = ShapeType | NetworkLayerType;
 
 export interface BlockInstance {

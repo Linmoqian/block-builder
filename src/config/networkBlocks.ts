@@ -7,4 +7,5 @@ export const NETWORK_TEMPLATES: BlockTemplate[] = [
   { type: 'Dropout', label: 'Dropout(0.5)', defaultColor: '#ec4899', isNetwork: true },
   { type: 'CrossEntropy', label: 'CrossEntropyLoss', defaultColor: '#f59e0b', isNetwork: true },
   { type: 'Adam', label: 'Adam', defaultColor: '#10b981', isNetwork: true },
+  { type: 'RandomData', label: 'RandomData', defaultColor: '#8b5cf6', isNetwork: true },
 ];

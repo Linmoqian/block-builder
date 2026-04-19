@@ -70,13 +70,24 @@ export function generatePyTorchCode(blocks: BlockInstance[]): string {
     return '# 警告: 计算图中存在环，无法生成合法的 PyTorch 代码\n';
   }
 
-  // 3. Generate Code
+  // 3. Classify nodes
   const layers = sorted.filter(n => ['Linear', 'Conv2d', 'ReLU', 'Dropout'].includes(n.type));
   const hasLoss = sorted.some(n => n.type === 'CrossEntropy');
   const hasOpt = sorted.some(n => n.type === 'Adam');
+  const hasData = sorted.some(n => n.type === 'RandomData');
+  const hasConv = layers.some(n => n.type === 'Conv2d');
+  const hasParams = layers.some(n => ['Linear', 'Conv2d'].includes(n.type));
 
+  // 4. Determine data dimensions based on first and last layer
+  const firstLayer = layers.find(n => ['Linear', 'Conv2d'].includes(n.type));
+  const lastLayer = [...layers].reverse().find(n => ['Linear', 'Conv2d'].includes(n.type));
+  const inDim = firstLayer?.type === 'Conv2d' ? '1, 3, 32, 32' : '1, 128';
+  const outDim = lastLayer?.type === 'Conv2d' ? 16 : 64;
+
+  // 5. Generate Code
   let code = `import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 
 class BlockNet(nn.Module):
@@ -90,7 +101,7 @@ class BlockNet(nn.Module):
     if (layer.type === 'Conv2d') fn = 'nn.Conv2d(3, 16, kernel_size=3)';
     if (layer.type === 'ReLU') fn = 'nn.ReLU()';
     if (layer.type === 'Dropout') fn = 'nn.Dropout(p=0.5)';
-    
+
     code += `        self.layer_${i} = ${fn}\n`;
   });
 
@@ -115,21 +126,39 @@ print(model)
   if (hasLoss) {
     code += `criterion = nn.CrossEntropyLoss()\n`;
   }
-  if (hasOpt) {
+  if (hasOpt && hasParams) {
     code += `optimizer = optim.Adam(model.parameters(), lr=0.001)\n`;
   }
 
-  if (hasLoss && hasOpt) {
-    code += `\n# 模拟伪数据前向传播测试
-if len(list(model.parameters())) > 0:
-    x_dummy = torch.randn(1, 128)
-    y_dummy = torch.randint(0, 64, (1,))
-    out = model(x_dummy)
-    loss = criterion(out, y_dummy)
+  if (hasData && hasLoss && hasOpt && hasParams) {
+    code += `
+# 生成随机训练数据
+x_data = torch.randn(${inDim})
+y_data = torch.randint(0, ${outDim}, (1,))
+
+# 训练循环
+epochs = 5
+for epoch in range(epochs):
+    optimizer.zero_grad()
+    output = model(x_data)
+`;
+
+    if (hasConv) {
+      code += `    output = F.adaptive_avg_pool2d(output, 1).view(output.size(0), -1)
+`;
+    }
+
+    code += `    loss = criterion(output, y_data)
     loss.backward()
     optimizer.step()
-    print(f"成功完成一次前向+反向传播！Loss: {loss.item():.4f}")
+    print(f"Epoch {epoch+1}/{epochs}  Loss: {loss.item():.4f}")
+
+print("训练完成！")
 `;
+  } else if (hasData && hasLoss && hasOpt && !hasParams) {
+    code += `\n# 提示: 请添加 Linear 或 Conv2d 网络层积木，模型需要可训练参数\n`;
+  } else if (hasLoss && hasOpt) {
+    code += `\n# 提示: 添加 RandomData 积木可生成完整训练代码\n`;
   }
 
   return code;
