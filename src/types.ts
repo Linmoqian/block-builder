@@ -1,8 +1,10 @@
 export type ShapeType = 'square' | 'rect-h' | 'rect-v' | 'circle' | 'triangle' | 'l-shape' | 't-shape';
+export type NetworkLayerType = 'Linear' | 'Conv2d' | 'ReLU' | 'Dropout' | 'CrossEntropy' | 'Adam';
+export type AllBlockType = ShapeType | NetworkLayerType;
 
 export interface BlockInstance {
   id: string;
-  type: ShapeType;
+  type: AllBlockType;
   x: number;
   y: number;
   color: string;
@@ -17,9 +19,10 @@ export interface Connection {
 }
 
 export interface BlockTemplate {
-  type: ShapeType;
+  type: AllBlockType;
   label: string;
   defaultColor: string;
+  isNetwork?: boolean;
 }
 
 export const BLOCK_TEMPLATES: BlockTemplate[] = [

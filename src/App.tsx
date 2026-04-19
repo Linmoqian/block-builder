@@ -20,9 +20,12 @@ import {
   Play
 } from 'lucide-react';
 import { useDragControls } from 'motion/react';
-import { BlockInstance, BLOCK_TEMPLATES, COLORS, ShapeType } from './types';
+import { BlockInstance, BLOCK_TEMPLATES, COLORS, AllBlockType, ShapeType } from './types';
 import { BlockShape } from './components/BlockShape';
 import { CodeHighlighter } from './components/CodeHighlighter';
+import { NETWORK_TEMPLATES } from './config/networkBlocks';
+import { NetworkBlockCard } from './components/NetworkBlockCard';
+import { generatePyTorchCode } from './graph/codegen';
 
 export default function App() {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
@@ -36,6 +39,7 @@ export default function App() {
   const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const [codeContent, setCodeContent] = useState("print('Hello, World!')");
+  const [activeTab, setActiveTab] = useState<'shapes' | 'network'>('shapes');
   const isOverCanvasRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -77,7 +81,8 @@ export default function App() {
   // 定期获取代码文件内容
   useEffect(() => {
     const fetchCode = () => {
-      fetch('http://localhost:8080/read-file')
+      const fileParam = activeTab === 'network' ? 'network.py' : 'sample.py';
+      fetch(`http://localhost:8080/read-file?file=${fileParam}`)
         .then(res => res.json())
         .then(data => {
           if (data.content !== undefined) {
@@ -90,7 +95,7 @@ export default function App() {
     fetchCode();
     const interval = setInterval(fetchCode, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;
@@ -143,7 +148,7 @@ export default function App() {
     return { x: snappedX, y: snappedY };
   };
 
-  const addBlockAt = (type: ShapeType, color: string, x: number, y: number) => {
+  const addBlockAt = (type: AllBlockType, color: string, x: number, y: number) => {
     // Apply snapping for new blocks
     const { x: finalX, y: finalY } = findSnapPosition(null, x, y, blocks);
 
@@ -160,13 +165,15 @@ export default function App() {
     setSelectedId(newBlock.id);
     setNextZIndex(prev => prev + 1);
 
-    // 通知后端添加积木（只有新建积木时才通知）
-    const template = BLOCK_TEMPLATES.find(t => t.type === type);
-    fetch('http://localhost:8080/drag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newBlock.id, type, name: template?.label || type })
-    }).catch(() => {});
+    // 通知后端添加积木（只有新建积木时才通知，如果不是网络积木）
+    const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === type);
+    if (!template?.isNetwork) {
+      fetch('http://localhost:8080/drag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: newBlock.id, type, name: template?.label || type })
+      }).catch(() => {});
+    }
   };
 
   const updateBlock = (id: string, updates: Partial<BlockInstance>) => {
@@ -178,15 +185,24 @@ export default function App() {
 
     // 通知后端删除积木
     if (block) {
-      const template = BLOCK_TEMPLATES.find(t => t.type === block.type);
-      fetch('http://localhost:8080/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id, name: template?.label || block.type })
-      }).catch(() => {});
+      const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === block.type);
+      if (!template?.isNetwork) {
+        fetch('http://localhost:8080/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, name: template?.label || block.type })
+        }).catch(() => {});
+      }
     }
 
-    setBlocks(prev => prev.filter(b => b.id !== id));
+    setBlocks(prev => {
+      // 移除连接到此积木的其他积木里面的id
+      const newBlocks = prev.filter(b => b.id !== id);
+      return newBlocks.map(b => ({
+        ...b,
+        connectedTo: b.connectedTo ? b.connectedTo.filter(cid => cid !== id) : undefined
+      }));
+    });
     if (selectedId === id) setSelectedId(null);
   };
 
@@ -224,16 +240,11 @@ export default function App() {
     if (fromId === toId) return;
 
     setBlocks(prev => prev.map(block => {
+      // 只有从发送方连接到接收方，变成有向图的边，不需要反向
       if (block.id === fromId) {
         const connectedTo = block.connectedTo || [];
         if (!connectedTo.includes(toId)) {
           return { ...block, connectedTo: [...connectedTo, toId] };
-        }
-      }
-      if (block.id === toId) {
-        const connectedTo = block.connectedTo || [];
-        if (!connectedTo.includes(fromId)) {
-          return { ...block, connectedTo: [...connectedTo, fromId] };
         }
       }
       return block;
@@ -243,8 +254,8 @@ export default function App() {
     const fromBlock = blocks.find(b => b.id === fromId);
     const toBlock = blocks.find(b => b.id === toId);
     if (fromBlock && toBlock) {
-      const fromTemplate = BLOCK_TEMPLATES.find(t => t.type === fromBlock.type);
-      const toTemplate = BLOCK_TEMPLATES.find(t => t.type === toBlock.type);
+      const fromTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === fromBlock.type);
+      const toTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === toBlock.type);
       fetch('http://localhost:8080/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -352,11 +363,36 @@ export default function App() {
           <p className="text-xs text-zinc-500 mt-2 uppercase tracking-wider font-semibold">Block Builder Pro</p>
         </div>
 
+        <div className="flex gap-1 px-5 py-3 border-b border-zinc-100 bg-zinc-50/50">
+          <button
+            onClick={() => setActiveTab('shapes')}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-colors ${
+              activeTab === 'shapes'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-zinc-600 hover:bg-zinc-100'
+            }`}
+          >
+            🔷 形状库
+          </button>
+          <button
+            onClick={() => setActiveTab('network')}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-colors ${
+              activeTab === 'network'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-zinc-600 hover:bg-zinc-100'
+            }`}
+          >
+            🧠 网络层
+          </button>
+        </div>
+
         <div className={`flex-1 px-5 py-4 space-y-6 ${isAnyItemDragging ? 'overflow-visible' : 'overflow-y-auto'}`}>
           <section>
-            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">形状库 (拖拽添加)</h2>
+            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
+              {activeTab === 'shapes' ? '基础形状 (拖拽添加)' : '网络库 (拖拽添加)'}
+            </h2>
             <div className="grid grid-cols-2 gap-4">
-              {BLOCK_TEMPLATES.map((template) => (
+              {(activeTab === 'shapes' ? BLOCK_TEMPLATES : NETWORK_TEMPLATES).map((template) => (
                 <div
                   key={template.type}
                   className="relative h-32 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col items-center justify-center p-4 hover:border-blue-400 hover:bg-blue-50 transition-colors group"
@@ -380,21 +416,29 @@ export default function App() {
                       setIsAnyItemDragging(false);
                       handleTemplateDragEnd(e, info, template);
                     }}
-                    className="z-30 cursor-grab active:z-50 touch-none"
+                    className="z-30 cursor-grab active:z-50 touch-none flex items-center justify-center"
                   >
                     <div className="pointer-events-none">
-                      <BlockShape type={template.type} color={template.defaultColor} size={52} />
+                      {template.isNetwork ? (
+                        <NetworkBlockCard type={template.type} color={template.defaultColor} size={52} label={template.label} />
+                      ) : (
+                        <BlockShape type={template.type as ShapeType} color={template.defaultColor} size={52} />
+                      )}
                     </div>
                   </motion.div>
                   
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mt-2 pointer-events-none group-hover:text-blue-500 transition-colors select-none">
+                  <span className="text-[10px] font-bold text-zinc-400 hover:text-blue-500 uppercase tracking-wider mt-2 pointer-events-none group-hover:text-blue-500 transition-colors select-none text-center">
                     {template.label}
                   </span>
 
                   {/* Ghost placeholder when dragging */}
                   {isAnyItemDragging && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                      <BlockShape type={template.type} color="#000" size={40} />
+                      {template.isNetwork ? (
+                        <NetworkBlockCard type={template.type} color="#000" size={40} label={template.label} />
+                      ) : (
+                        <BlockShape type={template.type as ShapeType} color="#000" size={40} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -547,7 +591,13 @@ export default function App() {
           }}
         >
           <AnimatePresence>
-            {blocks.map((block) => (
+            {blocks.map((block) => {
+              const isNetwork = NETWORK_TEMPLATES.some(t => t.type === block.type);
+              const template = isNetwork 
+                ? NETWORK_TEMPLATES.find(t => t.type === block.type) 
+                : BLOCK_TEMPLATES.find(t => t.type === block.type);
+
+              return (
               <motion.div
                 key={block.id}
                 drag
@@ -606,12 +656,20 @@ export default function App() {
                   e.stopPropagation();
                   setContextMenu({ x: e.clientX, y: e.clientY, blockId: block.id });
                 }}
-                className={`absolute cursor-grab active:cursor-grabbing ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50' : ''} ${connectingFrom === block.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
-                style={{ left: 0, top: 0 }}
+                className={`absolute cursor-grab active:cursor-grabbing outline-none ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50 ring-2 ring-blue-500 ring-offset-2 ring-offset-zinc-50' : ''} ${connectingFrom === block.id ? 'ring-2 ring-blue-400 ring-offset-2 animate-pulse' : ''}`}
+                style={{ left: 0, top: 0, margin: '-32px 0 0 -32px' }}
               >
-                <BlockShape type={block.type} color={block.color} size={64} />
+                {isNetwork ? (
+                  <NetworkBlockCard type={block.type} color={block.color} size={64} label={template?.label} />
+                ) : (
+                  <BlockShape type={block.type as ShapeType} color={block.color} size={64} />
+                )}
+                {/* 连线原点吸附点指示器 */}
+                {connectingFrom === block.id && (
+                  <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 animate-ping pointer-events-none" />
+                )}
               </motion.div>
-            ))}
+            )})}
           </AnimatePresence>
 
           {/* 连接线 */}
@@ -777,13 +835,31 @@ export default function App() {
             <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
               <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-2">
                 <Code2 size={16} className="text-blue-500" />
-                代码阅读器
+                代码阅读器 ({activeTab === 'network' ? 'network.py' : 'sample.py'})
               </h2>
               <div className="flex items-center gap-2">
+                {activeTab === 'network' && (
+                  <button
+                    onClick={() => {
+                      const code = generatePyTorchCode(blocks);
+                      fetch('http://localhost:8080/export', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code })
+                      }).catch(() => {});
+                    }}
+                    className="flex items-center gap-1 p-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors text-white text-xs font-bold"
+                    title="导出 PyTorch 代码"
+                  >
+                    <Download size={14} />
+                    导出代码
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     // 通知后端运行代码
-                    fetch('http://localhost:8080/run', {
+                    const fileParam = activeTab === 'network' ? 'network.py' : 'sample.py';
+                    fetch(`http://localhost:8080/run?file=${fileParam}`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ action: 'run' })
@@ -796,7 +872,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`print('Hello, World!')`);
+                    navigator.clipboard.writeText(codeContent);
                   }}
                   className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors"
                   title="复制代码"

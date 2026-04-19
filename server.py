@@ -34,9 +34,23 @@ PRINT_MAP = {
 class DragHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """处理 GET 请求"""
-        if self.path == '/read-file':
+        if self.path.startswith('/read-file'):
+            # 解析查询字符串，获取文件参数
+            file_param = 'sample.py'  # 默认文件
+            if '?' in self.path:
+                try:
+                    from urllib.parse import urlparse, parse_qs
+                    parsed_path = urlparse(self.path)
+                    query_params = parse_qs(parsed_path.query)
+                    if 'file' in query_params:
+                        file_param = query_params['file'][0]
+                except Exception:
+                    pass
+            
+            file_path = f'TmpSrc/{file_param}'
+
             try:
-                with open('TmpSrc/sample.py', 'r', encoding='utf-8') as f:
+                with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -48,7 +62,7 @@ class DragHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                self.wfile.write(json.dumps({'content': '# 文件不存在\n# 请创建 TmpSrc/sample.py', 'success': False}).encode('utf-8'))
+                self.wfile.write(json.dumps({'content': f'# 文件不存在\n# 请创建 {file_path}', 'success': False}).encode('utf-8'))
             except Exception as e:
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -151,14 +165,28 @@ class DragHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"status": "ok"}')
 
-        elif self.path == '/run':
-            # 执行 sample.py 文件
+        elif self.path.startswith('/run'):
+            # 解析查询字符串，获取文件参数
+            file_param = 'sample.py'  # 默认文件
+            if '?' in self.path:
+                try:
+                    from urllib.parse import urlparse, parse_qs
+                    parsed_path = urlparse(self.path)
+                    query_params = parse_qs(parsed_path.query)
+                    if 'file' in query_params:
+                        file_param = query_params['file'][0]
+                except Exception:
+                    pass
+            
+            file_path = f'TmpSrc/{file_param}'
+
+            # 执行对应文件
             try:
-                print(f"\n{GREEN}[运行]{RESET} 执行 TmpSrc/sample.py")
+                print(f"\n{GREEN}[运行]{RESET} 执行 {file_path}")
                 print(f"{BLUE}{'─' * 9}{RESET}")
 
                 result = subprocess.run(
-                    ['python', 'TmpSrc/sample.py'],
+                    ['python', file_path],
                     capture_output=True,
                     text=True,
                     timeout=10
@@ -196,6 +224,40 @@ class DragHandler(BaseHTTPRequestHandler):
                 }).encode('utf-8'))
             except Exception as e:
                 print(f"{YELLOW}[运行]{RESET} 执行失败: {str(e)}")
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'error',
+                    'error': str(e)
+                }).encode('utf-8'))
+        elif self.path == '/export':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode('utf-8'))
+            
+            code = data.get('code', '')
+            
+            try:
+                import os
+                if not os.path.exists('TmpSrc'):
+                    os.makedirs('TmpSrc')
+                with open('TmpSrc/network.py', 'w', encoding='utf-8') as f:
+                    f.write(code)
+                
+                print(f"{GREEN}[导出]{RESET} 代码已写入 TmpSrc/network.py")
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'ok',
+                    'message': 'Code exported successfully'
+                }).encode('utf-8'))
+            except Exception as e:
+                print(f"{YELLOW}[导出]{RESET} 失败: {str(e)}")
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
