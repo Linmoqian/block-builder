@@ -32,6 +32,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'shapes' | 'network' | 'yolo'>('shapes');
   const isOverCanvasRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [nextZIndex, setNextZIndex] = useState(1);
 
@@ -355,9 +356,10 @@ export default function App() {
 
     if (info.point.x > sidebarWidth) {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
+      const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
       if (canvasRect) {
         let x = info.point.x - canvasRect.left - 30;
-        let y = info.point.y - canvasRect.top - 30;
+        let y = info.point.y - canvasRect.top - 30 + scrollTop;
         
         if (showGrid) {
           x = Math.round(x / 24) * 24;
@@ -386,9 +388,10 @@ export default function App() {
     const block = blocks.find(b => b.id === id);
     if (block) {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
+      const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
       if (canvasRect) {
         let newX = info.point.x - canvasRect.left - 30;
-        let newY = info.point.y - canvasRect.top - 30;
+        let newY = info.point.y - canvasRect.top - 30 + scrollTop;
         
         if (showGrid) {
           newX = Math.round(newX / 24) * 24;
@@ -799,6 +802,7 @@ export default function App() {
           }}
         >
           <div
+            ref={scrollContainerRef}
             className={`absolute inset-0 ${isAnyItemDragging ? 'overflow-hidden' : 'overflow-y-auto'}`}
             style={{
               backgroundImage: showGrid ? 'radial-gradient(#e5e7eb 1px, transparent 1px)' : 'none',
