@@ -15,6 +15,7 @@ import { ParameterPanel } from './components/ParameterPanel';
 import { generatePyTorchCode } from './graph/codegen';
 import { parseYoloYaml } from './yaml/parser';
 import { generateYoloYaml } from './yaml/generator';
+import { YOLO_PRESETS, SCALES, loadPreset } from './config/yoloPresets';
 
 export default function App() {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
@@ -396,6 +397,19 @@ export default function App() {
     setShowClearConfirm(false);
   };
 
+  // 加载预置 YOLO 模型
+  const handleLoadPreset = (family: string, scale: string) => {
+    const preset = YOLO_PRESETS.find(p => p.family === family);
+    if (!preset) return;
+
+    // 清除现有 YOLO 积木，保留其他类型积木
+    const nonYoloBlocks = blocks.filter(b => !YOLO_TEMPLATES.some(t => t.type === b.type));
+    const newBlocks = loadPreset(family, scale, 60, nextZIndex);
+    setBlocks([...nonYoloBlocks, ...newBlocks]);
+    setNextZIndex(prev => prev + newBlocks.length + 1);
+    showToast(`已加载 ${preset.family}${scale} (${newBlocks.length} 层)`);
+  };
+
   const selectedBlock = blocks.find(b => b.id === selectedId);
 
   return (
@@ -510,6 +524,37 @@ export default function App() {
           ) : (
             /* ── YOLO Tab ── */
             <div className="space-y-5">
+              {/* Preset models */}
+              {YOLO_PRESETS.map(preset => (
+                <div key={preset.family}>
+                  <h3 className="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                    预置模型 · {preset.label}
+                  </h3>
+                  <div className="flex gap-1.5 mb-4">
+                    {preset.scales.map(scaleKey => {
+                      const sc = SCALES[scaleKey];
+                      return (
+                        <button
+                          key={scaleKey}
+                          onClick={() => handleLoadPreset(preset.family, scaleKey)}
+                          className="flex-1 py-2 px-1.5 bg-rose-50 hover:bg-rose-100 active:bg-rose-200
+                                     border border-rose-200 rounded-lg text-center transition-colors group"
+                          title={`depth=${sc.depth}, width=${sc.width}`}
+                        >
+                          <span className="block text-xs font-bold text-rose-700 group-hover:text-rose-900">
+                            {preset.family.replace('YOLO', '')}{scaleKey}
+                          </span>
+                          <span className="block text-[8px] text-rose-400 mt-0.5">
+                            {scaleKey === 'n' ? 'nano' : scaleKey === 's' ? 'small' : scaleKey === 'm' ? 'medium' : scaleKey === 'l' ? 'large' : 'xlarge'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
               {/* Import / Export buttons */}
               <div className="flex gap-2">
                 <button
