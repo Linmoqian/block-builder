@@ -1,6 +1,18 @@
 export type ShapeType = 'square' | 'rect-h' | 'rect-v' | 'circle' | 'triangle' | 'l-shape' | 't-shape';
 export type NetworkLayerType = 'Linear' | 'Conv2d' | 'ReLU' | 'Dropout' | 'CrossEntropy' | 'Adam' | 'RandomData';
-export type AllBlockType = ShapeType | NetworkLayerType;
+export type YoloModuleType =
+  | 'Conv' | 'DWConv' | 'GhostConv' | 'RepConv'
+  | 'Bottleneck' | 'C2f' | 'C3k2' | 'SPPF' | 'PSA' | 'C2PSA'
+  | 'Concat' | 'nn.Upsample'
+  | 'Detect' | 'Segment' | 'Classify';
+export type AllBlockType = ShapeType | NetworkLayerType | YoloModuleType;
+
+export interface ParamDef {
+  name: string;
+  type: 'number' | 'boolean' | 'string';
+  default: any;
+  description: string;
+}
 
 export interface BlockInstance {
   id: string;
@@ -10,7 +22,22 @@ export interface BlockInstance {
   color: string;
   rotation: number;
   zIndex: number;
-  connectedTo?: string[]; // 连接的其他积木ID
+  connectedTo?: string[];
+  yoloParams?: Record<string, any>;  // YOLO 模块参数
+  repeats?: number;                   // YOLO 模块重复次数
+}
+
+export interface YoloBlockTemplate {
+  type: YoloModuleType;
+  label: string;
+  defaultColor: string;
+  category: 'conv' | 'block' | 'neck' | 'head';
+  params: ParamDef[];
+  defaultRepeats: number;
+  /** 从 YAML args 顺序映射到 param name */
+  argNames: string[];
+  isYolo: true;
+  isNetwork?: false;
 }
 
 export interface Connection {
@@ -65,5 +92,22 @@ export const BLOCK_PORTS: Record<string, { maxInputs: number; maxOutputs: number
   'ReLU': { maxInputs: 1, maxOutputs: 1 },
   'Dropout': { maxInputs: 1, maxOutputs: 1 },
   'CrossEntropy': { maxInputs: 2, maxOutputs: 1 },
-  'Adam': { maxInputs: 1, maxOutputs: 0 }
+  'Adam': { maxInputs: 1, maxOutputs: 0 },
+
+  // YOLO module ports
+  'Conv': { maxInputs: 3, maxOutputs: 1 },
+  'DWConv': { maxInputs: 3, maxOutputs: 1 },
+  'GhostConv': { maxInputs: 3, maxOutputs: 1 },
+  'RepConv': { maxInputs: 3, maxOutputs: 1 },
+  'Bottleneck': { maxInputs: 3, maxOutputs: 1 },
+  'C2f': { maxInputs: 3, maxOutputs: 1 },
+  'C3k2': { maxInputs: 3, maxOutputs: 1 },
+  'SPPF': { maxInputs: 3, maxOutputs: 1 },
+  'PSA': { maxInputs: 3, maxOutputs: 1 },
+  'C2PSA': { maxInputs: 3, maxOutputs: 1 },
+  'Concat': { maxInputs: 4, maxOutputs: 1 },
+  'nn.Upsample': { maxInputs: 1, maxOutputs: 1 },
+  'Detect': { maxInputs: 5, maxOutputs: 0 },
+  'Segment': { maxInputs: 5, maxOutputs: 0 },
+  'Classify': { maxInputs: 1, maxOutputs: 0 },
 };
