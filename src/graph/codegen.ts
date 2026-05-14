@@ -78,7 +78,9 @@ export function generatePyTorchCode(blocks: BlockInstance[]): string {
   const hasConv = layers.some(n => n.type === 'Conv2d');
   const hasParams = layers.some(n => ['Linear', 'Conv2d'].includes(n.type));
 
-  // 4. Determine data dimensions based on first and last layer
+  // 4. Determine data dimensions
+  const linearCount = layers.filter(n => n.type === 'Linear').length;
+  const convCount = layers.filter(n => n.type === 'Conv2d').length;
   const firstLayer = layers.find(n => ['Linear', 'Conv2d'].includes(n.type));
   const lastLayer = [...layers].reverse().find(n => ['Linear', 'Conv2d'].includes(n.type));
   const inDim = firstLayer?.type === 'Conv2d' ? '1, 3, 32, 32' : '1, 128';
@@ -95,10 +97,24 @@ class BlockNet(nn.Module):
         super(BlockNet, self).__init__()
 `;
 
+  let linearIdx = 0;
+  let convIdx = 0;
   layers.forEach((layer, i) => {
     let fn = 'nn.Identity()';
-    if (layer.type === 'Linear') fn = 'nn.Linear(128, 64)';
-    if (layer.type === 'Conv2d') fn = 'nn.Conv2d(3, 16, kernel_size=3)';
+    if (layer.type === 'Linear') {
+      const sizes = [128, 64, 32, 16];
+      const inSize = sizes[Math.min(linearIdx, sizes.length - 2)];
+      const outSize = sizes[Math.min(linearIdx + 1, sizes.length - 1)];
+      fn = `nn.Linear(${inSize}, ${outSize})`;
+      linearIdx++;
+    }
+    if (layer.type === 'Conv2d') {
+      const channels = [3, 16, 32, 64];
+      const inCh = channels[Math.min(convIdx, channels.length - 2)];
+      const outCh = channels[Math.min(convIdx + 1, channels.length - 1)];
+      fn = `nn.Conv2d(${inCh}, ${outCh}, kernel_size=3, padding=1)`;
+      convIdx++;
+    }
     if (layer.type === 'ReLU') fn = 'nn.ReLU()';
     if (layer.type === 'Dropout') fn = 'nn.Dropout(p=0.5)';
 

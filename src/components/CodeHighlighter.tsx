@@ -15,7 +15,7 @@ interface CodeHighlighterProps {
 /**
  * Python 代码语法高亮组件
  */
-export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
+export const CodeHighlighter = React.memo<CodeHighlighterProps>(({
   code,
   theme = defaultTheme,
   showLineNumbers = true
@@ -54,7 +54,7 @@ export const CodeHighlighter: React.FC<CodeHighlighterProps> = ({
       ))}
     </pre>
   );
-};
+});
 
 /**
  * Token 类型

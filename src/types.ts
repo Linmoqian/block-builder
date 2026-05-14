@@ -12,6 +12,8 @@ export interface ParamDef {
   type: 'number' | 'boolean' | 'string';
   default: any;
   description: string;
+  /** 为 true 时，YAML 生成将该参数的 0 值转为 null */
+  nullWhenZero?: boolean;
 }
 
 export interface BlockInstance {

@@ -61,7 +61,7 @@ export const ParameterPanel: React.FC<ParameterPanelProps> = ({ block, onUpdate 
           min={1}
           max={20}
           value={block.repeats ?? template.defaultRepeats}
-          onChange={e => updateRepeats(parseInt(e.target.value, 10) || 1)}
+          onChange={e => updateRepeats(Math.max(1, parseInt(e.target.value, 10) || 1))}
           className="w-full mt-1 px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-mono
                      focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />

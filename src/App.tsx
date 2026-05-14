@@ -49,6 +49,7 @@ export default function App() {
 
   // 提示信息
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // YAML 导入/导出
   const [showYamlImport, setShowYamlImport] = useState(false);
@@ -56,12 +57,14 @@ export default function App() {
   const [yamlText, setYamlText] = useState('');
 
   const showToast = (message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(message);
-    setTimeout(() => setToastMessage(null), 3000);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   };
 
   // 拖动时的实时位置 (用于连接线跟踪)
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const dragRafRef = useRef<number | null>(null);
 
   // 点击外部关闭右键菜单
   useEffect(() => {
@@ -84,6 +87,9 @@ export default function App() {
   }, []);
 
   // 定期获取代码文件内容
+  const codeContentRef = useRef(codeContent);
+  codeContentRef.current = codeContent;
+
   useEffect(() => {
     if (activeTab === 'yolo') return;
 
@@ -92,11 +98,11 @@ export default function App() {
       fetch(`http://localhost:8080/read-file?file=${fileParam}`)
         .then(res => res.json())
         .then(data => {
-          if (data.content !== undefined && data.content !== codeContent) {
+          if (data.content !== undefined && data.content !== codeContentRef.current) {
             setCodeContent(data.content);
           }
         })
-        .catch(() => {});
+        .catch(err => console.error('[BlockBuilder]', err));
     };
 
     fetchCode();
@@ -233,7 +239,7 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: newBlock.id, type, name: template?.label || type })
-      }).catch(() => {});
+      }).catch(err => console.error('[BlockBuilder]', err));
     }
   };
 
@@ -254,7 +260,7 @@ export default function App() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id, name: template?.label || block.type })
-          }).catch(() => {});
+          }).catch(err => console.error('[BlockBuilder]', err));
         }
       }
     }
@@ -328,13 +334,35 @@ export default function App() {
       return;
     }
 
-    // 检查是否已经存在反向或重复连接，避免循环和复用
+    // 检查是否已经存在反向或重复连接
     const outputList = fromBlock.connectedTo || [];
     const isAlreadyConnected = outputList.includes(toId);
     const isReverseConnected = (toBlock.connectedTo || []).includes(fromId);
 
     if (isAlreadyConnected || isReverseConnected) {
       showToast('这两个积木已存在连接！');
+      return;
+    }
+
+    // 循环检测：DFS 从 toId 沿 connectedTo 图搜索，看是否能回到 fromId
+    const wouldCreateCycle = (sourceId: string, targetId: string): boolean => {
+      const visited = new Set<string>();
+      const stack = [sourceId];
+      while (stack.length > 0) {
+        const current = stack.pop()!;
+        if (current === targetId) return true;
+        if (visited.has(current)) continue;
+        visited.add(current);
+        const block = blocks.find(b => b.id === current);
+        if (block?.connectedTo) {
+          stack.push(...block.connectedTo);
+        }
+      }
+      return false;
+    };
+
+    if (wouldCreateCycle(toId, fromId)) {
+      showToast('连接会形成环路，已阻止！');
       return;
     }
 
@@ -364,7 +392,7 @@ export default function App() {
             from: { type: fromBlock.type, name: fromTemplate?.label },
             to: { type: toBlock.type, name: toTemplate?.label }
           })
-        }).catch(() => {});
+        }).catch(err => console.error('[BlockBuilder]', err));
       }
     }
   };
@@ -876,11 +904,13 @@ export default function App() {
                   // 移动已有积木时不通知后端添加代码
                 }}
                 onDrag={(e, info) => {
-                  // 更新实时位置用于连接线跟踪 (使用 offset 而不是 delta)
-                  setDragPositions(prev => ({
-                    ...prev,
-                    [block.id]: { x: block.x + info.offset.x, y: block.y + info.offset.y }
-                  }));
+                  if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current);
+                  dragRafRef.current = requestAnimationFrame(() => {
+                    setDragPositions(prev => ({
+                      ...prev,
+                      [block.id]: { x: block.x + info.offset.x, y: block.y + info.offset.y }
+                    }));
+                  });
                 }}
                 onDragEnd={(e, info) => {
                   setIsAnyItemDragging(false);
@@ -1214,6 +1244,10 @@ export default function App() {
 
                 const handleMouseUp = () => {
                   setIsResizing(false);
+                  cleanup();
+                };
+
+                const cleanup = () => {
                   document.removeEventListener('mousemove', handleMouseMove);
                   document.removeEventListener('mouseup', handleMouseUp);
                 };
@@ -1236,7 +1270,7 @@ export default function App() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ code })
-                      }).catch(() => {});
+                      }).catch(err => console.error('[BlockBuilder]', err));
                     }}
                     className="flex items-center gap-1 p-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors text-white text-xs font-bold"
                     title="导出 PyTorch 代码"
@@ -1253,7 +1287,7 @@ export default function App() {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ action: 'run' })
-                    }).catch(() => {});
+                    }).catch(err => console.error('[BlockBuilder]', err));
                   }}
                   className="p-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
                   title="运行代码"

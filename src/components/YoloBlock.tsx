@@ -10,7 +10,7 @@ interface YoloBlockProps {
   repeats?: number;
 }
 
-export const YoloBlock: React.FC<YoloBlockProps> = ({ type, color, size = 64, params, repeats }) => {
+export const YoloBlock = React.memo<YoloBlockProps>(({ type, color, size = 64, params, repeats }) => {
   const template = YOLO_TEMPLATES.find(t => t.type === type);
 
   // Build a short summary of key params
@@ -61,7 +61,7 @@ export const YoloBlock: React.FC<YoloBlockProps> = ({ type, color, size = 64, pa
         style={{ borderColor: color }} />
     </div>
   );
-};
+});
 
 function categoryColor(cat?: string): string {
   switch (cat) {

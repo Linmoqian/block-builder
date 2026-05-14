@@ -8,7 +8,7 @@ interface NetworkBlockProps {
   label?: string;
 }
 
-export const NetworkBlockCard: React.FC<NetworkBlockProps> = ({ type, color, size = 64, label }) => {
+export const NetworkBlockCard = React.memo<NetworkBlockProps>(({ type, color, size = 64, label }) => {
   return (
     <div 
       className="flex items-center justify-center rounded-md font-bold text-white shadow-md relative"
@@ -26,4 +26,4 @@ export const NetworkBlockCard: React.FC<NetworkBlockProps> = ({ type, color, siz
       <div className="absolute right-0 top-1/2 -mt-1.5 -mr-1.5 w-3 h-3 bg-white border-2 border-current rounded-full" style={{ borderColor: color }} />
     </div>
   );
-};
+});

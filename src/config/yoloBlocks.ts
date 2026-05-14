@@ -165,7 +165,7 @@ export const YOLO_TEMPLATES: YoloBlockTemplate[] = [
     defaultRepeats: 1,
     argNames: ['size', 'scale_factor', 'mode'],
     params: [
-      { name: 'size', type: 'number', default: 0, description: '目标尺寸（0=自动）' },
+      { name: 'size', type: 'number', default: 0, description: '目标尺寸（0=自动）', nullWhenZero: true },
       { name: 'scale_factor', type: 'number', default: 2, description: '上采样倍数' },
       { name: 'mode', type: 'string', default: 'nearest', description: '插值模式' },
     ],

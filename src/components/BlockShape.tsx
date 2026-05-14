@@ -8,7 +8,7 @@ interface BlockShapeProps {
   className?: string;
 }
 
-export const BlockShape: React.FC<BlockShapeProps> = ({ type, color, size = 64, className = "" }) => {
+export const BlockShape = React.memo<BlockShapeProps>(({ type, color, size = 64, className = "" }) => {
   const style = { backgroundColor: color };
 
   switch (type) {
@@ -49,4 +49,4 @@ export const BlockShape: React.FC<BlockShapeProps> = ({ type, color, size = 64, 
     default:
       return null;
   }
-};
+});

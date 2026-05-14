@@ -91,7 +91,8 @@ nc: ${nc}
     const params = block.yoloParams || {};
     const args = template.argNames.map(name => {
       const val = params[name];
-      return formatArg(val);
+      const paramDef = template.params.find(p => p.name === name);
+      return formatArg(val, paramDef?.nullWhenZero);
     });
     return '[' + args.join(', ') + ']';
   };
@@ -131,10 +132,9 @@ nc: ${nc}
   return yaml;
 }
 
-function formatArg(val: any): string {
+function formatArg(val: any, nullWhenZero?: boolean): string {
   if (val === null || val === undefined) return 'null';
-  // size=0 in Upsample means None (no explicit size, use scale_factor)
-  if (typeof val === 'number' && val === 0) return 'null';
+  if (typeof val === 'number' && val === 0 && nullWhenZero) return 'null';
   if (typeof val === 'boolean') return val ? 'True' : 'False';
   if (typeof val === 'number') {
     return Number.isInteger(val) ? val.toString() : val.toFixed(2);
