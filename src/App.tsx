@@ -171,14 +171,11 @@ export default function App() {
   };
 
   const addBlockAt = (type: AllBlockType, color: string, x: number, y: number) => {
-    // Apply snapping for new blocks
-    const { x: finalX, y: finalY } = findSnapPosition(null, x, y, blocks);
-
     const newBlock: BlockInstance = {
       id: Math.random().toString(36).substr(2, 9),
       type,
-      x: finalX,
-      y: finalY,
+      x,
+      y,
       color,
       rotation: 0,
       zIndex: nextZIndex,
@@ -365,16 +362,6 @@ export default function App() {
         let x = (info.point.x - canvasRect.left) / zoom - 30;
         let y = (info.point.y - canvasRect.top) / zoom - 30 + scrollTop;
         
-        if (showGrid) {
-          x = Math.round(x / 24) * 24;
-          y = Math.round(y / 24) * 24;
-        } else {
-          // If grid is off, still try to snap to other blocks
-          const snapped = findSnapPosition(null, x, y, blocks);
-          x = snapped.x;
-          y = snapped.y;
-        }
-        
         addBlockAt(template.type, template.defaultColor, x, y);
       }
     }
@@ -396,16 +383,6 @@ export default function App() {
       if (canvasRect) {
         let newX = (info.point.x - canvasRect.left) / zoom - 30;
         let newY = (info.point.y - canvasRect.top) / zoom - 30 + scrollTop;
-        
-        if (showGrid) {
-          newX = Math.round(newX / 24) * 24;
-          newY = Math.round(newY / 24) * 24;
-        } else {
-          // Block-to-block snapping
-          const snapped = findSnapPosition(id, newX, newY, blocks);
-          newX = snapped.x;
-          newY = snapped.y;
-        }
         
         updateBlock(id, { x: newX, y: newY });
       }
