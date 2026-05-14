@@ -1,31 +1,20 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Plus,
-  Trash2,
-  RotateCw,
-  Layers,
-  Download,
-  Undo2,
-  Grid3X3,
-  MousePointer2,
-  Palette,
-  Copy,
-  Trash,
-  Link2,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Code2,
-  Play
-} from 'lucide-react';
+import { Plus, Trash2, RotateCw, Layers, Download, Upload, FileJson,
+  Undo2, Grid3X3, MousePointer2, Palette, Copy, Trash, Link2, X,
+  ChevronLeft, ChevronRight, Code2, Play } from 'lucide-react';
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, AllBlockType, ShapeType, BLOCK_PORTS } from './types';
 import { BlockShape } from './components/BlockShape';
 import { CodeHighlighter } from './components/CodeHighlighter';
 import { NETWORK_TEMPLATES } from './config/networkBlocks';
+import { YOLO_TEMPLATES } from './config/yoloBlocks';
 import { NetworkBlockCard } from './components/NetworkBlockCard';
+import { YoloBlock } from './components/YoloBlock';
+import { ParameterPanel } from './components/ParameterPanel';
 import { generatePyTorchCode } from './graph/codegen';
+import { parseYoloYaml } from './yaml/parser';
+import { generateYoloYaml } from './yaml/generator';
 
 export default function App() {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
@@ -39,7 +28,7 @@ export default function App() {
   const [rightSidebarWidth, setRightSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const [codeContent, setCodeContent] = useState("print('Hello, World!')");
-  const [activeTab, setActiveTab] = useState<'shapes' | 'network'>('shapes');
+  const [activeTab, setActiveTab] = useState<'shapes' | 'network' | 'yolo'>('shapes');
   const isOverCanvasRef = useRef(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -57,6 +46,11 @@ export default function App() {
 
   // 提示信息
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // YAML 导入/导出
+  const [showYamlImport, setShowYamlImport] = useState(false);
+  const [showYamlExport, setShowYamlExport] = useState(false);
+  const [yamlText, setYamlText] = useState('');
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -173,14 +167,25 @@ export default function App() {
     setSelectedId(newBlock.id);
     setNextZIndex(prev => prev + 1);
 
-    // 通知后端添加积木（只有新建积木时才通知，如果不是网络积木）
-    const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === type);
-    if (!template?.isNetwork) {
+    // 通知后端添加积木（非网络/YOLO 积木才通知旧后端）
+    const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES, ...YOLO_TEMPLATES].find(t => t.type === type);
+    const isYoloBlock = YOLO_TEMPLATES.some(t => t.type === type);
+    if (!template?.isNetwork && !isYoloBlock) {
       fetch('http://localhost:8080/drag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: newBlock.id, type, name: template?.label || type })
       }).catch(() => {});
+    }
+    // Initialize YOLO params if applicable
+    if (isYoloBlock) {
+      const yoloTemplate = YOLO_TEMPLATES.find(t => t.type === type);
+      if (yoloTemplate && !newBlock.yoloParams) {
+        const defaultParams: Record<string, any> = {};
+        yoloTemplate.params.forEach(p => { defaultParams[p.name] = p.default; });
+        newBlock.yoloParams = defaultParams;
+        newBlock.repeats = yoloTemplate.defaultRepeats;
+      }
     }
   };
 
@@ -191,15 +196,18 @@ export default function App() {
   const deleteBlock = (id: string) => {
     const block = blocks.find(b => b.id === id);
 
-    // 通知后端删除积木
+    // 通知后端删除积木（非 YOLO 积木才通知）
     if (block) {
-      const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === block.type);
-      if (!template?.isNetwork) {
-        fetch('http://localhost:8080/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: id, name: template?.label || block.type })
-        }).catch(() => {});
+      const isYoloBlock = YOLO_TEMPLATES.some(t => t.type === block.type);
+      if (!isYoloBlock) {
+        const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === block.type);
+        if (!template?.isNetwork) {
+          fetch('http://localhost:8080/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, name: template?.label || block.type })
+          }).catch(() => {});
+        }
       }
     }
 
@@ -293,18 +301,21 @@ export default function App() {
 
     showToast('连接成功！');
 
-    // 通知后端
+    // 通知后端（跳过 YOLO 积木）
     if (fromBlock && toBlock) {
-      const fromTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === fromBlock.type);
-      const toTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === toBlock.type);
-      fetch('http://localhost:8080/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: { type: fromBlock.type, name: fromTemplate?.label },
-          to: { type: toBlock.type, name: toTemplate?.label }
-        })
-      }).catch(() => {});
+      const isYoloConnect = YOLO_TEMPLATES.some(t => t.type === fromBlock.type || t.type === toBlock.type);
+      if (!isYoloConnect) {
+        const fromTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === fromBlock.type);
+        const toTemplate = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES].find(t => t.type === toBlock.type);
+        fetch('http://localhost:8080/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: { type: fromBlock.type, name: fromTemplate?.label },
+            to: { type: toBlock.type, name: toTemplate?.label }
+          })
+        }).catch(() => {});
+      }
     }
   };
 
@@ -425,13 +436,24 @@ export default function App() {
           >
             🧠 网络层
           </button>
+          <button
+            onClick={() => setActiveTab('yolo')}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-colors ${
+              activeTab === 'yolo'
+                ? 'bg-rose-600 text-white'
+                : 'bg-white text-zinc-600 hover:bg-zinc-100'
+            }`}
+          >
+            🎯 YOLO
+          </button>
         </div>
 
         <div className={`flex-1 px-5 py-4 space-y-6 ${isAnyItemDragging ? 'overflow-visible' : 'overflow-y-auto'}`}>
           <section>
             <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
-              {activeTab === 'shapes' ? '基础形状 (拖拽添加)' : '网络库 (拖拽添加)'}
+              {activeTab === 'shapes' ? '基础形状 (拖拽添加)' : activeTab === 'network' ? '网络库 (拖拽添加)' : 'YOLO 模型 (拖拽添加)'}
             </h2>
+            {activeTab !== 'yolo' ? (
             <div className="grid grid-cols-2 gap-4">
               {(activeTab === 'shapes' ? BLOCK_TEMPLATES : NETWORK_TEMPLATES).map((template) => (
                 <div
@@ -485,9 +507,96 @@ export default function App() {
                 </div>
               ))}
             </div>
+          ) : (
+            /* ── YOLO Tab ── */
+            <div className="space-y-5">
+              {/* Import / Export buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setYamlText(''); setShowYamlImport(true); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-xs font-bold text-zinc-600 transition-colors"
+                >
+                  <Upload size={14} /> 导入 YAML
+                </button>
+                <button
+                  onClick={() => {
+                    const yaml = generateYoloYaml(blocks);
+                    setYamlText(yaml);
+                    setShowYamlExport(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-rose-500 hover:bg-rose-600 rounded-xl text-xs font-bold text-white transition-colors"
+                >
+                  <Download size={14} /> 导出 YAML
+                </button>
+              </div>
+
+              {/* Category sections */}
+              {(['conv', 'block', 'neck', 'head'] as const).map(cat => {
+                const catTemplates = YOLO_TEMPLATES.filter(t => t.category === cat);
+                if (catTemplates.length === 0) return null;
+                const catLabels: Record<string, string> = { conv: '卷积模块', block: '特征块', neck: '颈部/融合', head: '检测头' };
+                const catColors: Record<string, string> = { conv: '#3b82f6', block: '#10b981', neck: '#06b6d4', head: '#ef4444' };
+                return (
+                  <div key={cat}>
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5" style={{ color: catColors[cat] }}>
+                      <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: catColors[cat] }} />
+                      {catLabels[cat]}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {catTemplates.map(template => (
+                        <div
+                          key={template.type}
+                          className="relative h-28 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col items-center justify-center p-3 hover:border-rose-300 hover:bg-rose-50 transition-colors group"
+                        >
+                          <motion.div
+                            drag
+                            dragSnapToOrigin
+                            dragMomentum={false}
+                            dragElastic={0.1}
+                            whileDrag={{ scale: 1.2, zIndex: 1000, filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.3))", cursor: "grabbing" }}
+                            onDragStart={() => setIsAnyItemDragging(true)}
+                            onDrag={handleTemplateDrag}
+                            onDragEnd={(e, info) => {
+                              setIsAnyItemDragging(false);
+                              handleTemplateDragEnd(e, info, template);
+                            }}
+                            className="z-30 cursor-grab active:z-50 touch-none flex items-center justify-center"
+                          >
+                            <div className="pointer-events-none">
+                              <YoloBlock
+                                type={template.type}
+                                color={template.defaultColor}
+                                size={44}
+                                params={template.params.reduce((acc, p) => ({ ...acc, [p.name]: p.default }), {})}
+                                repeats={template.defaultRepeats}
+                              />
+                            </div>
+                          </motion.div>
+
+                          <span className="text-[9px] font-bold text-zinc-400 group-hover:text-rose-500 uppercase tracking-wider mt-1.5 pointer-events-none transition-colors select-none text-center">
+                            {template.label}
+                          </span>
+
+                          {isAnyItemDragging && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                              <YoloBlock type={template.type} color="#000" size={36} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           </section>
 
-          {selectedBlock && (
+          {selectedBlock && YOLO_TEMPLATES.some(t => t.type === selectedBlock.type) && (
+            <ParameterPanel block={selectedBlock} onUpdate={updateBlock} />
+          )}
+
+          {selectedBlock && !YOLO_TEMPLATES.some(t => t.type === selectedBlock.type) && (
             <motion.section
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -634,8 +743,11 @@ export default function App() {
           <AnimatePresence>
             {blocks.map((block) => {
               const isNetwork = NETWORK_TEMPLATES.some(t => t.type === block.type);
-              const template = isNetwork 
-                ? NETWORK_TEMPLATES.find(t => t.type === block.type) 
+              const isYolo = YOLO_TEMPLATES.some(t => t.type === block.type);
+              const template = isNetwork
+                ? NETWORK_TEMPLATES.find(t => t.type === block.type)
+                : isYolo
+                ? YOLO_TEMPLATES.find(t => t.type === block.type)
                 : BLOCK_TEMPLATES.find(t => t.type === block.type);
 
               return (
@@ -700,7 +812,10 @@ export default function App() {
                 className={`absolute cursor-grab active:cursor-grabbing outline-none ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50 ring-2 ring-blue-500 ring-offset-2 ring-offset-zinc-50' : ''} ${connectingFrom === block.id ? 'ring-2 ring-blue-400 ring-offset-2 animate-pulse' : ''}`}
                 style={{ left: 0, top: 0, margin: '-32px 0 0 -32px' }}
               >
-                {isNetwork ? (
+                {isYolo ? (
+                  <YoloBlock type={block.type} color={block.color} size={64}
+                    params={block.yoloParams} repeats={block.repeats} />
+                ) : isNetwork ? (
                   <NetworkBlockCard type={block.type} color={block.color} size={64} label={template?.label} />
                 ) : (
                   <BlockShape type={block.type as ShapeType} color={block.color} size={64} />
@@ -819,6 +934,132 @@ export default function App() {
                 className="absolute top-20 left-1/2 z-50 px-4 py-2 bg-slate-800 text-white rounded-lg shadow-lg"
               >
                 {toastMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* YAML Import Modal */}
+          <AnimatePresence>
+            {showYamlImport && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-8"
+                onClick={() => setShowYamlImport(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+                    <h2 className="text-sm font-bold flex items-center gap-2">
+                      <FileJson size={16} className="text-rose-500" />
+                      导入 YOLO YAML
+                    </h2>
+                    <button onClick={() => setShowYamlImport(false)} className="text-zinc-400 hover:text-zinc-600">
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6">
+                    <textarea
+                      value={yamlText}
+                      onChange={e => setYamlText(e.target.value)}
+                      placeholder="在此粘贴 YOLO YAML 配置..."
+                      className="w-full h-64 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono
+                                 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 resize-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 px-6 py-4 border-t border-zinc-200">
+                    <button
+                      onClick={() => setShowYamlImport(false)}
+                      className="px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={() => {
+                        try {
+                          const { blocks: newBlocks } = parseYoloYaml(yamlText);
+                          // Position blocks below existing content
+                          const maxY = blocks.length > 0
+                            ? Math.max(...blocks.map(b => b.y + 90))
+                            : 0;
+                          const positioned = newBlocks.map((b, i) => ({
+                            ...b,
+                            y: maxY + i * 90,
+                            zIndex: nextZIndex + i,
+                          }));
+                          setBlocks(prev => [...prev, ...positioned]);
+                          setNextZIndex(prev => prev + newBlocks.length);
+                          setShowYamlImport(false);
+                          showToast(`导入成功: ${newBlocks.length} 个模块`);
+                        } catch (err) {
+                          showToast('YAML 解析失败，请检查格式');
+                        }
+                      }}
+                      className="px-4 py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors"
+                    >
+                      导入
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* YAML Export Modal */}
+          <AnimatePresence>
+            {showYamlExport && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-8"
+                onClick={() => setShowYamlExport(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+                    <h2 className="text-sm font-bold flex items-center gap-2">
+                      <FileJson size={16} className="text-rose-500" />
+                      导出的 YOLO YAML
+                    </h2>
+                    <button onClick={() => setShowYamlExport(false)} className="text-zinc-400 hover:text-zinc-600">
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6">
+                    <pre className="w-full h-64 overflow-auto px-4 py-3 bg-zinc-900 text-green-400 rounded-xl text-xs font-mono whitespace-pre">
+                      {yamlText}
+                    </pre>
+                  </div>
+                  <div className="flex justify-end gap-3 px-6 py-4 border-t border-zinc-200">
+                    <button
+                      onClick={() => setShowYamlExport(false)}
+                      className="px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+                    >
+                      关闭
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(yamlText);
+                        showToast('YAML 已复制到剪贴板');
+                      }}
+                      className="px-4 py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors"
+                    >
+                      复制 YAML
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
