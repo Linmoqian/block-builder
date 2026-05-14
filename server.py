@@ -6,7 +6,20 @@
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
+import os
+import re
 import subprocess
+
+ALLOWED_FILES = {'sample.py', 'network.py'}
+
+
+def validate_file_param(file_param: str) -> str | None:
+    """校验文件名参数，防止路径遍历"""
+    if not file_param or file_param != os.path.basename(file_param):
+        return None
+    if not re.match(r'^[a-zA-Z0-9_\-]+\.py$', file_param):
+        return None
+    return file_param
 
 # 终端颜色代码
 GREEN = '\033[92m'
@@ -32,11 +45,20 @@ PRINT_MAP = {
 
 
 class DragHandler(BaseHTTPRequestHandler):
+    def send_json(self, code: int, data: dict):
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode('utf-8'))
+
+    def send_json_error(self, code: int, message: str):
+        self.send_json(code, {'status': 'error', 'error': message})
+
     def do_GET(self):
         """处理 GET 请求"""
         if self.path.startswith('/read-file'):
-            # 解析查询字符串，获取文件参数
-            file_param = 'sample.py'  # 默认文件
+            file_param = 'sample.py'
             if '?' in self.path:
                 try:
                     from urllib.parse import urlparse, parse_qs
@@ -46,29 +68,22 @@ class DragHandler(BaseHTTPRequestHandler):
                         file_param = query_params['file'][0]
                 except Exception:
                     pass
-            
-            file_path = f'TmpSrc/{file_param}'
+
+            validated = validate_file_param(file_param)
+            if not validated:
+                self.send_json_error(400, '非法文件名')
+                return
+
+            file_path = f'TmpSrc/{validated}'
 
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({'content': content, 'success': True}).encode('utf-8'))
+                self.send_json(200, {'content': content, 'success': True})
             except FileNotFoundError:
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({'content': f'# 文件不存在\n# 请创建 {file_path}', 'success': False}).encode('utf-8'))
+                self.send_json(404, {'content': f'# 文件不存在\n# 请创建 {file_path}', 'success': False})
             except Exception as e:
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({'content': f'# 读取错误: {str(e)}', 'success': False}).encode('utf-8'))
+                self.send_json(500, {'content': f'# 读取错误: {str(e)}', 'success': False})
         else:
             self.send_response(404)
             self.end_headers()
@@ -124,11 +139,7 @@ class DragHandler(BaseHTTPRequestHandler):
 
             block_print_map[block_id] = line_num
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{"status": "ok"}')
+            self.send_json(200, {'status': 'ok'})
 
         elif self.path == '/delete':
             content_length = int(self.headers.get('Content-Length', 0))
@@ -159,15 +170,10 @@ class DragHandler(BaseHTTPRequestHandler):
 
                 del block_print_map[block_id]
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(b'{"status": "ok"}')
+            self.send_json(200, {'status': 'ok'})
 
         elif self.path.startswith('/run'):
-            # 解析查询字符串，获取文件参数
-            file_param = 'sample.py'  # 默认文件
+            file_param = 'sample.py'
             if '?' in self.path:
                 try:
                     from urllib.parse import urlparse, parse_qs
@@ -177,10 +183,14 @@ class DragHandler(BaseHTTPRequestHandler):
                         file_param = query_params['file'][0]
                 except Exception:
                     pass
-            
-            file_path = f'TmpSrc/{file_param}'
 
-            # 执行对应文件
+            validated = validate_file_param(file_param)
+            if not validated or validated not in ALLOWED_FILES:
+                self.send_json_error(400, '非法文件名')
+                return
+
+            file_path = f'TmpSrc/{validated}'
+
             try:
                 print(f"\n{GREEN}[运行]{RESET} 执行 {file_path}")
                 print(f"{BLUE}{'─' * 9}{RESET}")
@@ -189,7 +199,8 @@ class DragHandler(BaseHTTPRequestHandler):
                     ['python', file_path],
                     capture_output=True,
                     text=True,
-                    timeout=10
+                    timeout=10,
+                    cwd=os.path.dirname(os.path.abspath(__file__)),
                 )
 
                 if result.stdout:
@@ -201,37 +212,30 @@ class DragHandler(BaseHTTPRequestHandler):
                 print(f"{BLUE}{'─' * 9}{RESET}")
                 print(f"{GREEN}[完成]{RESET} 返回码: {result.returncode}\n")
 
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({
+                self.send_json(200, {
                     'status': 'ok',
                     'stdout': result.stdout,
                     'stderr': result.stderr,
-                    'returncode': result.returncode
-                }).encode('utf-8'))
+                    'returncode': result.returncode,
+                })
 
             except subprocess.TimeoutExpired:
                 print(f"{YELLOW}[运行]{RESET} 执行超时 (10秒)")
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    'status': 'error',
-                    'error': '执行超时 (10秒)'
-                }).encode('utf-8'))
+                self.send_json_error(408, '执行超时 (10秒)')
             except Exception as e:
                 print(f"{YELLOW}[运行]{RESET} 执行失败: {str(e)}")
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    'status': 'error',
-                    'error': str(e)
-                }).encode('utf-8'))
+                self.send_json_error(500, str(e))
+        elif self.path == '/connect':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode('utf-8'))
+
+            from_id = data.get('from', 'unknown')
+            to_id = data.get('to', 'unknown')
+            print(f"{MAGENTA}[连接]{RESET} {GREEN}{from_id}{RESET} -> {GREEN}{to_id}{RESET}")
+
+            self.send_json(200, {'status': 'ok'})
+
         elif self.path == '/export':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
@@ -240,32 +244,17 @@ class DragHandler(BaseHTTPRequestHandler):
             code = data.get('code', '')
             
             try:
-                import os
                 if not os.path.exists('TmpSrc'):
                     os.makedirs('TmpSrc')
                 with open('TmpSrc/network.py', 'w', encoding='utf-8') as f:
                     f.write(code)
-                
+
                 print(f"{GREEN}[导出]{RESET} 代码已写入 TmpSrc/network.py")
-                
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    'status': 'ok',
-                    'message': 'Code exported successfully'
-                }).encode('utf-8'))
+
+                self.send_json(200, {'status': 'ok', 'message': 'Code exported successfully'})
             except Exception as e:
                 print(f"{YELLOW}[导出]{RESET} 失败: {str(e)}")
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    'status': 'error',
-                    'error': str(e)
-                }).encode('utf-8'))
+                self.send_json_error(500, str(e))
         else:
             self.send_response(404)
             self.end_headers()
