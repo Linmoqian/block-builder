@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, RotateCw, Layers, Download, Upload, FileJson,
   Undo2, Grid3X3, MousePointer2, Palette, Copy, Trash, Link2, X,
   ChevronLeft, ChevronRight, Code2, Play, ZoomIn, ZoomOut } from 'lucide-react';
-import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, AllBlockType, ShapeType, BLOCK_PORTS } from './types';
 import { BlockShape } from './components/BlockShape';
 import { CodeHighlighter } from './components/CodeHighlighter';
@@ -35,10 +34,8 @@ export default function App() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [nextZIndex, setNextZIndex] = useState(1);
-  const [zoom, setZoom] = useState(1);
-  const MIN_ZOOM = 0.25;
-  const MAX_ZOOM = 3;
-  const ZOOM_STEP = 0.25;
+  const [zoomLevel, setZoomLevel] = useState(4); // 4 = 100%, 步进1, 范围1-12
+  const zoom = zoomLevel / 4;
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -86,21 +83,16 @@ export default function App() {
     };
   }, []);
 
-  // 定期获取代码文件内容 / 生成 YOLO YAML
+  // 定期获取代码文件内容
   useEffect(() => {
-    if (activeTab === 'yolo') {
-      // YOLO 模式：前端生成 YAML，无需后端
-      const yaml = generateYoloYaml(blocks);
-      setCodeContent(yaml);
-      return;
-    }
+    if (activeTab === 'yolo') return;
 
     const fetchCode = () => {
       const fileParam = activeTab === 'network' ? 'network.py' : 'sample.py';
       fetch(`http://localhost:8080/read-file?file=${fileParam}`)
         .then(res => res.json())
         .then(data => {
-          if (data.content !== undefined) {
+          if (data.content !== undefined && data.content !== codeContent) {
             setCodeContent(data.content);
           }
         })
@@ -110,7 +102,49 @@ export default function App() {
     fetchCode();
     const interval = setInterval(fetchCode, 1000);
     return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // YOLO 模式：积木变化时生成 YAML
+  const yoloYaml = useMemo(() => {
+    if (activeTab !== 'yolo') return '';
+    return generateYoloYaml(blocks);
   }, [activeTab, blocks]);
+
+  useEffect(() => {
+    if (activeTab === 'yolo' && yoloYaml) {
+      setCodeContent(yoloYaml);
+    }
+  }, [activeTab, yoloYaml]);
+
+  // 连接线数据（useMemo 缓存）
+  const connectionLines = useMemo(() => {
+    const drawn = new Set<string>();
+    const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
+    const blockMap = new Map<string, BlockInstance>(blocks.map(b => [b.id, b]));
+    blocks.forEach(block => {
+      const connectedTo = block.connectedTo || [];
+      connectedTo.forEach(targetId => {
+        const key = block.id < targetId ? `${block.id}|${targetId}` : `${targetId}|${block.id}`;
+        if (drawn.has(key)) return;
+        drawn.add(key);
+        const targetBlock = blockMap.get(targetId);
+        if (!targetBlock) return;
+        const bx = dragPositions[block.id]?.x ?? block.x;
+        const by = dragPositions[block.id]?.y ?? block.y;
+        const tx = dragPositions[targetId]?.x ?? targetBlock.x;
+        const ty = dragPositions[targetId]?.y ?? targetBlock.y;
+        const isBelow = ty > by;
+        lines.push({
+          key,
+          x1: bx,
+          y1: isBelow ? by + 32 : by - 32,
+          x2: tx,
+          y2: isBelow ? ty - 32 : ty + 32,
+        });
+      });
+    });
+    return lines;
+  }, [blocks, dragPositions]);
 
   // 根据积木位置计算画布内容高度
   const canvasHeight = useMemo(() => {
@@ -171,6 +205,14 @@ export default function App() {
   };
 
   const addBlockAt = (type: AllBlockType, color: string, x: number, y: number) => {
+    const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES, ...YOLO_TEMPLATES].find(t => t.type === type);
+    const isYoloBlock = YOLO_TEMPLATES.some(t => t.type === type);
+
+    const yoloTemplate = isYoloBlock ? YOLO_TEMPLATES.find(t => t.type === type) : undefined;
+    const yoloParams = yoloTemplate
+      ? Object.fromEntries(yoloTemplate.params.map(p => [p.name, p.default]))
+      : undefined;
+
     const newBlock: BlockInstance = {
       id: Math.random().toString(36).substr(2, 9),
       type,
@@ -179,30 +221,19 @@ export default function App() {
       color,
       rotation: 0,
       zIndex: nextZIndex,
+      ...(yoloParams && { yoloParams }),
+      ...(yoloTemplate && { repeats: yoloTemplate.defaultRepeats }),
     };
     setBlocks(prev => [...prev, newBlock]);
     setSelectedId(newBlock.id);
     setNextZIndex(prev => prev + 1);
 
-    // 通知后端添加积木（非网络/YOLO 积木才通知旧后端）
-    const template = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES, ...YOLO_TEMPLATES].find(t => t.type === type);
-    const isYoloBlock = YOLO_TEMPLATES.some(t => t.type === type);
     if (!template?.isNetwork && !isYoloBlock) {
       fetch('http://localhost:8080/drag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: newBlock.id, type, name: template?.label || type })
       }).catch(() => {});
-    }
-    // Initialize YOLO params if applicable
-    if (isYoloBlock) {
-      const yoloTemplate = YOLO_TEMPLATES.find(t => t.type === type);
-      if (yoloTemplate && !newBlock.yoloParams) {
-        const defaultParams: Record<string, any> = {};
-        yoloTemplate.params.forEach(p => { defaultParams[p.name] = p.default; });
-        newBlock.yoloParams = defaultParams;
-        newBlock.repeats = yoloTemplate.defaultRepeats;
-      }
     }
   };
 
@@ -286,12 +317,14 @@ export default function App() {
     const toInputCount = blocks.filter(b => b.connectedTo && b.connectedTo.includes(toId)).length;
 
     if (fromOutputCount >= fromLimits.maxOutputs) {
-      showToast(`${fromBlock.label || fromBlock.type} 无法添加更多输出连接！(最大: ${fromLimits.maxOutputs})`);
+      const fromLabel = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES, ...YOLO_TEMPLATES].find(t => t.type === fromBlock.type)?.label || fromBlock.type;
+      showToast(`${fromLabel} 无法添加更多输出连接！(最大: ${fromLimits.maxOutputs})`);
       return;
     }
 
     if (toInputCount >= toLimits.maxInputs) {
-      showToast(`${toBlock.label || toBlock.type} 无法接受更多输入连接！(最大: ${toLimits.maxInputs})`);
+      const toLabel = [...BLOCK_TEMPLATES, ...NETWORK_TEMPLATES, ...YOLO_TEMPLATES].find(t => t.type === toBlock.type)?.label || toBlock.type;
+      showToast(`${toLabel} 无法接受更多输入连接！(最大: ${toLimits.maxInputs})`);
       return;
     }
 
@@ -357,7 +390,7 @@ export default function App() {
 
     if (info.point.x > sidebarWidth) {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
-      const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
+      const scrollTop = (scrollContainerRef.current?.scrollTop ?? 0) / zoom;
       if (canvasRect) {
         let x = (info.point.x - canvasRect.left) / zoom - 30;
         let y = (info.point.y - canvasRect.top) / zoom - 30 + scrollTop;
@@ -379,7 +412,7 @@ export default function App() {
     const block = blocks.find(b => b.id === id);
     if (block) {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
-      const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
+      const scrollTop = (scrollContainerRef.current?.scrollTop ?? 0) / zoom;
       if (canvasRect) {
         let newX = (info.point.x - canvasRect.left) / zoom - 30;
         let newY = (info.point.y - canvasRect.top) / zoom - 30 + scrollTop;
@@ -768,9 +801,9 @@ export default function App() {
           </button>
           <div className="w-px h-6 bg-zinc-200 mx-1" />
           <button
-            onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - ZOOM_STEP))}
-            className={`p-2.5 rounded-full transition-colors ${zoom <= MIN_ZOOM ? 'text-zinc-300 cursor-not-allowed' : 'hover:bg-zinc-100 text-zinc-500'}`}
-            disabled={zoom <= MIN_ZOOM}
+            onClick={() => setZoomLevel(z => Math.max(1, z - 1))}
+            className={`p-2.5 rounded-full transition-colors ${zoomLevel <= 1 ? 'text-zinc-300 cursor-not-allowed' : 'hover:bg-zinc-100 text-zinc-500'}`}
+            disabled={zoomLevel <= 1}
             title="缩小"
           >
             <ZoomOut size={18} />
@@ -779,9 +812,9 @@ export default function App() {
             {Math.round(zoom * 100)}%
           </span>
           <button
-            onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + ZOOM_STEP))}
-            className={`p-2.5 rounded-full transition-colors ${zoom >= MAX_ZOOM ? 'text-zinc-300 cursor-not-allowed' : 'hover:bg-zinc-100 text-zinc-500'}`}
-            disabled={zoom >= MAX_ZOOM}
+            onClick={() => setZoomLevel(z => Math.min(12, z + 1))}
+            className={`p-2.5 rounded-full transition-colors ${zoomLevel >= 12 ? 'text-zinc-300 cursor-not-allowed' : 'hover:bg-zinc-100 text-zinc-500'}`}
+            disabled={zoomLevel >= 12}
             title="放大"
           >
             <ZoomIn size={18} />
@@ -908,42 +941,14 @@ export default function App() {
           </AnimatePresence>
 
           {/* 连接线 */}
-          {(() => {
-            const drawn = new Set<string>();
-            const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
-            blocks.forEach(block => {
-              const connectedTo = block.connectedTo || [];
-              connectedTo.forEach(targetId => {
-                const key = block.id < targetId ? `${block.id}|${targetId}` : `${targetId}|${block.id}`;
-                if (drawn.has(key)) return;
-                drawn.add(key);
-                const targetBlock = blocks.find(b => b.id === targetId);
-                if (!targetBlock) return;
-                // 从源块边缘到目标块边缘（避免线条被积木遮挡）
-                const bx = dragPositions[block.id]?.x ?? block.x;
-                const by = dragPositions[block.id]?.y ?? block.y;
-                const tx = dragPositions[targetId]?.x ?? targetBlock.x;
-                const ty = dragPositions[targetId]?.y ?? targetBlock.y;
-                // 垂直连接：从下边缘到上边缘；水平使用块中心
-                const isBelow = ty > by;
-                lines.push({
-                  key,
-                  x1: bx,
-                  y1: isBelow ? by + 32 : by - 32,
-                  x2: tx,
-                  y2: isBelow ? ty - 32 : ty + 32,
-                });
-              });
-            });
-            return (
-              <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 9999 }}>
-                {lines.map(p => (
-                  <line key={p.key} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}
-                    stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
-                ))}
-              </svg>
-            );
-          })()}
+          {connectionLines.length > 0 && (
+            <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 9999 }}>
+              {connectionLines.map(p => (
+                <line key={p.key} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}
+                  stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+              ))}
+            </svg>
+          )}
 
           {blocks.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 pointer-events-none">
@@ -1269,7 +1274,9 @@ export default function App() {
             <div className="flex-1 overflow-hidden flex flex-col">
               {/* 文件标签 */}
               <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
-                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono">main.py</span>
+                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono">
+                  {activeTab === 'network' ? 'network.py' : activeTab === 'yolo' ? 'model.yaml' : 'sample.py'}
+                </span>
                 <span className="text-xs text-zinc-400">Python</span>
               </div>
               {/* 代码区域 */}
@@ -1280,12 +1287,6 @@ export default function App() {
           </motion.aside>
         )}
       </AnimatePresence>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .bg-grid-pattern {
-          background-color: #f8fafc;
-        }
-      `}} />
     </div>
   );
 }
