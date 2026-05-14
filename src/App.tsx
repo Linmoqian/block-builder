@@ -81,8 +81,15 @@ export default function App() {
     };
   }, []);
 
-  // 定期获取代码文件内容
+  // 定期获取代码文件内容 / 生成 YOLO YAML
   useEffect(() => {
+    if (activeTab === 'yolo') {
+      // YOLO 模式：前端生成 YAML，无需后端
+      const yaml = generateYoloYaml(blocks);
+      setCodeContent(yaml);
+      return;
+    }
+
     const fetchCode = () => {
       const fileParam = activeTab === 'network' ? 'network.py' : 'sample.py';
       fetch(`http://localhost:8080/read-file?file=${fileParam}`)
@@ -98,7 +105,7 @@ export default function App() {
     fetchCode();
     const interval = setInterval(fetchCode, 1000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, blocks]);
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;
@@ -405,8 +412,11 @@ export default function App() {
     // 清除现有 YOLO 积木，保留其他类型积木
     const nonYoloBlocks = blocks.filter(b => !YOLO_TEMPLATES.some(t => t.type === b.type));
     const newBlocks = loadPreset(family, scale, 60, nextZIndex);
-    setBlocks([...nonYoloBlocks, ...newBlocks]);
+    const allBlocks = [...nonYoloBlocks, ...newBlocks];
+    setBlocks(allBlocks);
     setNextZIndex(prev => prev + newBlocks.length + 1);
+    // 立即在代码面板显示生成的 YAML
+    setCodeContent(generateYoloYaml(allBlocks));
     showToast(`已加载 ${preset.family}${scale} (${newBlocks.length} 层)`);
   };
 
