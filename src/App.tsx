@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, RotateCw, Layers, Download, Upload, FileJson,
   Undo2, Grid3X3, MousePointer2, Palette, Copy, Trash, Link2, X,
-  ChevronLeft, ChevronRight, Code2, Play } from 'lucide-react';
+  ChevronLeft, ChevronRight, Code2, Play, ZoomIn, ZoomOut } from 'lucide-react';
 import { useDragControls } from 'motion/react';
 import { BlockInstance, BLOCK_TEMPLATES, COLORS, AllBlockType, ShapeType, BLOCK_PORTS } from './types';
 import { BlockShape } from './components/BlockShape';
@@ -35,6 +35,10 @@ export default function App() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [nextZIndex, setNextZIndex] = useState(1);
+  const [zoom, setZoom] = useState(1);
+  const MIN_ZOOM = 0.25;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.25;
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -358,8 +362,8 @@ export default function App() {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
       if (canvasRect) {
-        let x = info.point.x - canvasRect.left - 30;
-        let y = info.point.y - canvasRect.top - 30 + scrollTop;
+        let x = (info.point.x - canvasRect.left) / zoom - 30;
+        let y = (info.point.y - canvasRect.top) / zoom - 30 + scrollTop;
         
         if (showGrid) {
           x = Math.round(x / 24) * 24;
@@ -390,8 +394,8 @@ export default function App() {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       const scrollTop = scrollContainerRef.current?.scrollTop ?? 0;
       if (canvasRect) {
-        let newX = info.point.x - canvasRect.left - 30;
-        let newY = info.point.y - canvasRect.top - 30 + scrollTop;
+        let newX = (info.point.x - canvasRect.left) / zoom - 30;
+        let newY = (info.point.y - canvasRect.top) / zoom - 30 + scrollTop;
         
         if (showGrid) {
           newX = Math.round(newX / 24) * 24;
@@ -786,6 +790,26 @@ export default function App() {
             <Grid3X3 size={18} />
           </button>
           <div className="w-px h-6 bg-zinc-200 mx-1" />
+          <button
+            onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - ZOOM_STEP))}
+            className={`p-2.5 rounded-full transition-colors ${zoom <= MIN_ZOOM ? 'text-zinc-300 cursor-not-allowed' : 'hover:bg-zinc-100 text-zinc-500'}`}
+            disabled={zoom <= MIN_ZOOM}
+            title="缩小"
+          >
+            <ZoomOut size={18} />
+          </button>
+          <span className="text-xs font-semibold text-zinc-500 min-w-[3rem] text-center select-none">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + ZOOM_STEP))}
+            className={`p-2.5 rounded-full transition-colors ${zoom >= MAX_ZOOM ? 'text-zinc-300 cursor-not-allowed' : 'hover:bg-zinc-100 text-zinc-500'}`}
+            disabled={zoom >= MAX_ZOOM}
+            title="放大"
+          >
+            <ZoomIn size={18} />
+          </button>
+          <div className="w-px h-6 bg-zinc-200 mx-1" />
           <div className="px-4 text-xs font-medium text-zinc-400 flex items-center gap-2">
             <MousePointer2 size={14} /> 拖拽积木进行组合
           </div>
@@ -810,7 +834,16 @@ export default function App() {
               backgroundPosition: '0 0',
             }}
           >
-            <div style={{ height: Math.max(canvasHeight, 672), position: 'relative' }}>
+            <div style={{
+              height: Math.max(canvasHeight, 672) * zoom,
+              position: 'relative',
+            }}>
+              <div style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+                height: Math.max(canvasHeight, 672),
+                position: 'relative',
+              }}>
               <AnimatePresence>
                 {blocks.map((block) => {
               const isNetwork = NETWORK_TEMPLATES.some(t => t.type === block.type);
@@ -944,6 +977,7 @@ export default function App() {
             </div>
           )}
           </div>{/* /content-height */}
+          </div>{/* /zoom-wrapper */}
           </div>{/* /scroll-container */}
 
           {/* 右键菜单 */}
