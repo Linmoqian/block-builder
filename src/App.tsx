@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, RotateCw, Layers, Download, Upload, FileJson,
   Undo2, Grid3X3, MousePointer2, Palette, Copy, Trash, Link2, X,
@@ -106,6 +106,13 @@ export default function App() {
     const interval = setInterval(fetchCode, 1000);
     return () => clearInterval(interval);
   }, [activeTab, blocks]);
+
+  // 根据积木位置计算画布内容高度
+  const canvasHeight = useMemo(() => {
+    if (blocks.length === 0) return 672;
+    const maxY = Math.max(...blocks.map(b => (b.y || 0) + 100));
+    return Math.max(672, maxY);
+  }, [blocks]);
 
   const findSnapPosition = (id: string | null, x: number, y: number, currentBlocks: BlockInstance[]) => {
     const SNAP_THRESHOLD = 24;
@@ -784,19 +791,24 @@ export default function App() {
         {/* Canvas */}
         <div
           ref={canvasRef}
-          className={`flex-1 relative transition-colors ${showGrid ? 'bg-grid-pattern' : 'bg-zinc-50'}`}
+          className="flex-1 relative"
           onClick={() => {
             setSelectedId(null);
             setContextMenu(null);
             setConnectingFrom(null);
           }}
-          style={{
-            backgroundImage: showGrid ? 'radial-gradient(#e5e7eb 1px, transparent 1px)' : 'none',
-            backgroundSize: '24px 24px'
-          }}
         >
-          <AnimatePresence>
-            {blocks.map((block) => {
+          <div
+            className={`absolute inset-0 ${isAnyItemDragging ? 'overflow-hidden' : 'overflow-y-auto'}`}
+            style={{
+              backgroundImage: showGrid ? 'radial-gradient(#e5e7eb 1px, transparent 1px)' : 'none',
+              backgroundSize: '24px 24px',
+              backgroundPosition: '0 0',
+            }}
+          >
+            <div style={{ height: Math.max(canvasHeight, 672), position: 'relative' }}>
+              <AnimatePresence>
+                {blocks.map((block) => {
               const isNetwork = NETWORK_TEMPLATES.some(t => t.type === block.type);
               const isYolo = YOLO_TEMPLATES.some(t => t.type === block.type);
               const template = isNetwork
@@ -834,16 +846,14 @@ export default function App() {
                   handleBlockDragEnd(block.id, info);
                 }}
                 initial={{ scale: 0, opacity: 0 }}
-                animate={{ 
-                  scale: 1, 
+                animate={{
+                  scale: 1,
                   opacity: 1,
-                  x: block.x,
-                  y: block.y,
                   rotate: block.rotation,
                   zIndex: block.zIndex
                 }}
-                whileDrag={{ 
-                  scale: 1.1, 
+                whileDrag={{
+                  scale: 1.1,
                   zIndex: 2000,
                   boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.4)"
                 }}
@@ -865,7 +875,7 @@ export default function App() {
                   setContextMenu({ x: e.clientX, y: e.clientY, blockId: block.id });
                 }}
                 className={`absolute cursor-grab active:cursor-grabbing outline-none ${isAnyItemDragging ? 'transition-none' : ''} ${selectedId === block.id ? 'z-50 ring-2 ring-blue-500 ring-offset-2 ring-offset-zinc-50' : ''} ${connectingFrom === block.id ? 'ring-2 ring-blue-400 ring-offset-2 animate-pulse' : ''}`}
-                style={{ left: 0, top: 0, margin: '-32px 0 0 -32px' }}
+                style={{ left: block.x - 32, top: block.y - 32 }}
               >
                 {isYolo ? (
                   <YoloBlock type={block.type} color={block.color} size={64}
@@ -929,6 +939,8 @@ export default function App() {
               <p className="text-sm font-medium">从左侧拖拽形状开始搭建</p>
             </div>
           )}
+          </div>{/* /content-height */}
+          </div>{/* /scroll-container */}
 
           {/* 右键菜单 */}
           <AnimatePresence>
