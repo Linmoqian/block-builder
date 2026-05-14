@@ -884,35 +884,42 @@ export default function App() {
           </AnimatePresence>
 
           {/* 连接线 */}
-          <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
-            {blocks.map(block => {
+          {(() => {
+            const drawn = new Set<string>();
+            const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
+            blocks.forEach(block => {
               const connectedTo = block.connectedTo || [];
-              return connectedTo.map(targetId => {
+              connectedTo.forEach(targetId => {
+                const key = block.id < targetId ? `${block.id}|${targetId}` : `${targetId}|${block.id}`;
+                if (drawn.has(key)) return;
+                drawn.add(key);
                 const targetBlock = blocks.find(b => b.id === targetId);
-                if (!targetBlock || block.id > targetId) return null; // 避免重复绘制
-
-                // 使用实时位置（拖动中）或静态位置
-                const x1 = (dragPositions[block.id]?.x ?? block.x) + 32;
-                const y1 = (dragPositions[block.id]?.y ?? block.y) + 32;
-                const x2 = (dragPositions[targetId]?.x ?? targetBlock.x) + 32;
-                const y2 = (dragPositions[targetId]?.y ?? targetBlock.y) + 32;
-
-                return (
-                  <line
-                    key={`${block.id}-${targetId}`}
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                    strokeDasharray="5,5"
-                    className="transition-all duration-75"
-                  />
-                );
+                if (!targetBlock) return;
+                // 从源块边缘到目标块边缘（避免线条被积木遮挡）
+                const bx = dragPositions[block.id]?.x ?? block.x;
+                const by = dragPositions[block.id]?.y ?? block.y;
+                const tx = dragPositions[targetId]?.x ?? targetBlock.x;
+                const ty = dragPositions[targetId]?.y ?? targetBlock.y;
+                // 垂直连接：从下边缘到上边缘；水平使用块中心
+                const isBelow = ty > by;
+                lines.push({
+                  key,
+                  x1: bx,
+                  y1: isBelow ? by + 32 : by - 32,
+                  x2: tx,
+                  y2: isBelow ? ty - 32 : ty + 32,
+                });
               });
-            })}
-          </svg>
+            });
+            return (
+              <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', overflow: 'visible', zIndex: 9999 }}>
+                {lines.map(p => (
+                  <line key={p.key} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}
+                    stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+                ))}
+              </svg>
+            );
+          })()}
 
           {blocks.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-300 pointer-events-none">
