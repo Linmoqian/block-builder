@@ -116,11 +116,10 @@ export function loadPreset(
   const scaled = applyScaleToBlocks(blocks, scaleKey);
 
   // Position blocks vertically with spacing
-  scaled.forEach((b, i) => {
-    b.x = 60;
-    b.y = offsetY + i * 90;
-    b.zIndex = startZIndex + i;
-  });
-
-  return scaled;
+  return scaled.map((b, i) => ({
+    ...b,
+    x: 60,
+    y: offsetY + i * 90,
+    zIndex: startZIndex + i,
+  }));
 }

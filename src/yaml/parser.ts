@@ -275,7 +275,7 @@ function rawLayerToBlock(raw: RawYamlLayer, idx: number, total: number): BlockIn
   }
 
   const block: BlockInstance = {
-    id: `yolo-${idx}-${Date.now()}`,
+    id: `yolo-${idx}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
     type: (template?.type || 'Conv') as YoloModuleType,
     x: 0,
     y: 0,
