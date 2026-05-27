@@ -61,10 +61,25 @@ function argsToParams(type: string, args: (number | string | null)[]): Record<st
   return params;
 }
 
+/** Pre-process Ultralytics YAML to handle Python-style literals */
+function preprocessYaml(raw: string): string {
+  return raw
+    .replace(/:\s*None\b/g, ': null')
+    .replace(/:\s*True\b/g, ': true')
+    .replace(/:\s*False\b/g, ': false')
+    .replace(/,\s*None\b/g, ', null')
+    .replace(/,\s*True\b/g, ', true')
+    .replace(/,\s*False\b/g, ', false');
+}
+
 export function importYaml(yamlString: string): GraphIR {
-  const parsed = yaml.load(yamlString) as Record<string, YoloLayer[]>;
+  const processed = preprocessYaml(yamlString);
+  const parsed = yaml.load(processed) as Record<string, YoloLayer[]>;
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
+
+  // Extract nc for Detect layer substitution
+  const nc = (parsed as Record<string, unknown>).nc as number | undefined;
 
   // Flatten backbone + head into a single list
   const allLayers: YoloLayer[] = [];
@@ -85,7 +100,10 @@ export function importYaml(yamlString: string): GraphIR {
 
   for (let i = 0; i < allLayers.length; i++) {
     const layer = allLayers[i];
-    const type = layer.module;
+    // Strip nn. prefix (Ultralytics uses nn.Upsample, nn.MaxPool2d, etc.)
+    const type = layer.module.replace(/^nn\./, '');
+    // Substitute nc placeholder in args
+    const args = layer.args.map(a => (a === 'nc' && nc ? nc : a));
     const def = MODULE_REGISTRY[type];
 
     if (!def) {
@@ -103,7 +121,7 @@ export function importYaml(yamlString: string): GraphIR {
     }
 
     const nodeId = `${type.toLowerCase()}_${i}`;
-    const params = argsToParams(type, layer.args);
+    const params = argsToParams(type, args);
 
     nodes.push({
       id: nodeId,
