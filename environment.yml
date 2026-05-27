@@ -56,6 +56,7 @@ dependencies:
   - wheel=0.46.3=pyhd8ed1ab_0
   - fastapi
   - uvicorn
+  - pytest
   - pip:
       - annotated-doc==0.0.4
       - annotated-types==0.7.0
