@@ -196,10 +196,11 @@ function NeuralEditorInner() {
     try {
       const graph = await uploadJson();
       loadGraphIR(graph);
+      setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
     } catch (e) {
       console.error('Failed to load graph:', e);
     }
-  }, [loadGraphIR]);
+  }, [loadGraphIR, fitView]);
 
   const handleExportYaml = useCallback(() => {
     const yaml = exportYaml(getGraphIR());
@@ -238,26 +239,29 @@ function NeuralEditorInner() {
         const graph = importYaml(text);
         const laid = autoLayout(graph);
         loadGraphIR(laid);
+        setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
       } catch (e) {
         console.error('Failed to import YAML:', e);
       }
     };
     input.click();
-  }, [loadGraphIR]);
+  }, [loadGraphIR, fitView]);
 
   const handleLoadPreset = useCallback((presetKey: string) => {
     const preset = PRESETS[presetKey];
     if (preset) {
       const laid = autoLayout(preset.graph);
       loadGraphIR(laid);
+      setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
     }
-  }, [loadGraphIR]);
+  }, [loadGraphIR, fitView]);
 
   const handleAutoLayout = useCallback(() => {
     const graph = getGraphIR();
     const laid = autoLayout(graph);
     loadGraphIR(laid);
-  }, [getGraphIR, loadGraphIR]);
+    setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
+  }, [getGraphIR, loadGraphIR, fitView]);
 
   const yamlContent = useMemo(() => {
     if (nodes.length === 0) return '';
