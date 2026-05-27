@@ -5,32 +5,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm install      # 安装前端依赖
-npm run dev      # Vite 开发服务器 (端口 3000，host 0.0.0.0)
-npm run build    # 生产构建
-npm run preview  # 预览构建结果
-npm run clean    # 清理 dist 目录
-npm run lint     # TypeScript 类型检查 (tsc --noEmit)
-cd app && python server.py # 启动后端服务器 (端口 8080，需先激活 conda 环境 x)
+npm install                      # 安装前端依赖
+npm run dev                      # Vite 开发服务器 (端口 3000，host 0.0.0.0)
+npm run build                    # 生产构建（输出到 dist/）
+npm run clean                    # 清理 dist 目录
+npm run lint                     # TypeScript 类型检查 (tsc --noEmit)
+conda activate x                 # 激活 Python 环境
+cd app && python server.py       # 启动后端服务器 (端口 8080)
 ```
 
-前端和后端需同时运行：前端 `npm run dev` + 后端 `cd app && python server.py`。
+前端和后端需同时运行：`npm run dev` + `cd app && python server.py`。
 
 ## Architecture
 
 ### 前后端双进程架构
 
-前端 (Vite + React) 和后端 (Python HTTP 服务器) 通过 REST API 通信：
+前端 (Vite + React) 和后端 (Python HTTP 服务器) 通过 REST API 通信（`http://localhost:8080`）：
 
-| 端点 | 方法 | 用途 |
-|------|------|------|
-| `/drag` | POST | 积木添加到画布时，后端在 `app/TmpSrc/sample.py` 追加对应 Python 代码 |
-| `/delete` | POST | 积木删除时，后端移除对应代码行 |
-| `/connect` | POST | 积木连接时通知后端 |
-| `/run` | POST | 执行 `app/TmpSrc/sample.py`，返回运行结果 |
-| `/read-file` | GET | 读取 `app/TmpSrc/sample.py` 内容供代码阅读器显示 |
+| 端点 | 方法 | 触发时机 | 作用 |
+|------|------|----------|------|
+| `/drag` | POST | 积木拖入画布 | 向 `app/TmpSrc/sample.py` 追加代码行 |
+| `/delete` | POST | 积木被删除 | 从 sample.py 移除对应行 |
+| `/run?file=` | POST | 点击运行按钮 | 执行指定 py 文件，返回 stdout/stderr |
+| `/read-file?file=` | GET | 每秒轮询 | 读取 py 文件内容显示在右侧面板 |
+| `/export` | POST | 导出代码 | 将生成的 PyTorch 代码写入 `app/TmpSrc/network.py` |
 
-后端通过全局字典 `block_print_map` 追踪每个积木 ID 到代码行号的映射，实现积木与代码的双向同步。
+后端通过全局字典 `block_print_map` 追踪每个积木 ID 到代码行号的映射。使用 `__file__` 相对路径，可从任意目录启动。
 
 ### Tech Stack
 - **React 19** + **TypeScript** + **Vite 6** (前端)
@@ -69,40 +69,21 @@ app/
     └── main.tsx                 # React 入口
 ```
 
-### Frontend-Backend Communication
-
-前端通过 `fetch` 调用后端 API（`http://localhost:8080`）：
-
-| 端点 | 方法 | 触发时机 | 作用 |
-|------|------|----------|------|
-| `/drag` | POST | 新积木拖入画布 | 向 sample.py 追加 print 语句 |
-| `/delete` | POST | 积木被删除 | 从 sample.py 移除对应行 |
-| `/connect` | POST | 两个积木建立连接 | 终端输出连接信息 |
-| `/run` | POST | 点击运行按钮 | 执行 sample.py |
-| `/read-file` | GET | 每秒轮询 | 读取 sample.py 内容显示在右侧面板 |
-
-后端使用 `__file__` 相对路径，可通过 `cd app && python server.py` 从任意位置启动。
-
-后端用 `block_print_map` 字典跟踪每个积木 ID 到 sample.py 行号的映射。
-
 ### Key Concepts
 
-**BlockInstance** - 画布上的积木实例，包含 `connectedTo` 字段记录连接关系。
+**积木类型** — 分两类：
+- 基础形状（7种）：`square` | `rect-h` | `rect-v` | `circle` | `triangle` | `l-shape` | `t-shape`
+- 网络层：`Linear` | `Conv2d` | `ReLU` | `Dropout` | `CrossEntropy` | `Adam` | `RandomData`
 
-**7种形状**: `square` | `rect-h` | `rect-v` | `circle` | `triangle` | `l-shape` | `t-shape`
+**BlockInstance** — 画布上的积木实例，包含 `connectedTo` 字段记录连接关系。`BLOCK_PORTS` 定义每种积木的端口约束（`maxInputs`/`maxOutputs`）。
 
 **网格系统**: 24px 网格，`findSnapPosition()` 实现边缘吸附对齐（阈值 24px）。
 
 **拖拽流程**: 模板积木使用 `dragSnapToOrigin`（松手回弹），画布积木使用自由拖拽。拖到侧边栏区域触发删除。
 
-**代码同步**: 每种积木类型在 `server.py` 的 `PRINT_MAP` 中映射到一条 `print` 语句，拖入/删除时实时更新 sample.py。
+**连接逻辑**: 前端本地校验端口约束（`BLOCK_PORTS`），非法连接显示 Toast，不调用后端。
 
-### Motion Library Usage
-
-- `drag` - 拖拽功能
-- `dragSnapToOrigin` - 模板拖拽回弹
-- `whileDrag` - 拖拽时的视觉效果 (scale, shadow)
-- `AnimatePresence` - 进场/退场动画 (积木、侧边栏、右键菜单)
+**代码同步**: 基础形状在 `server.py` 的 `PRINT_MAP` 中映射到 print 语句；网络层通过 `graph/codegen.ts` 生成 PyTorch 代码。
 
 ### Path Alias
 
