@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# git 规范
+
+提交时，不能带有任何 AI 生成的消息。
+
 ## Commands
 
 ```bash
