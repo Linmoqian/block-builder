@@ -281,7 +281,14 @@ function NeuralEditorInner() {
     );
   }, [edges, errorEdgeIds]);
 
-  const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length + validationErrors.length;
+  const errorCount = useMemo(() => {
+    const shapeErrorNodeIds = new Set(
+      Array.from(shapeMap.values()).filter((s) => s.hasError).map((s) => s.nodeId),
+    );
+    const validationErrorNodeIds = new Set(validationErrors.filter((e) => e.nodeId).map((e) => e.nodeId));
+    const allNodeIds = new Set([...shapeErrorNodeIds, ...validationErrorNodeIds]);
+    return allNodeIds.size + validationErrors.filter((e) => !e.nodeId).length;
+  }, [shapeMap, validationErrors]);
 
   const modelStats = useMemo(() => {
     if (nodes.length === 0) return { totalParams: 0, totalFLOPs: 0 };

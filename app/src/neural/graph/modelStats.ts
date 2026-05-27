@@ -1,4 +1,4 @@
-import { GraphIR, InferredShape } from './types';
+import { GraphIR, InferredShape, TensorShape, ParamValue } from './types';
 import { topologicalSort } from './shapeInference';
 import { MODULE_REGISTRY } from './registry';
 
@@ -15,35 +15,35 @@ export function computeModelStats(
   let totalFLOPs = 0;
 
   const sorted = topologicalSort(graph);
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
 
   for (const nodeId of sorted) {
-    const node = graph.nodes.find((n) => n.id === nodeId);
+    const node = nodeMap.get(nodeId);
     if (!node) continue;
 
     const def = MODULE_REGISTRY.get(node.type);
     if (!def) continue;
 
-    // Gather input shapes from upstream edges (match shapeInference logic)
-    const inputShapes = def.inputs.map((inputPort) => {
+    const inputShapes: TensorShape[] = def.inputs.map((inputPort) => {
       const edge = graph.edges.find(
         (e) => e.target === nodeId && e.targetHandle === inputPort.id,
       );
-      if (!edge) return null;
+      if (!edge) return [0, 0, 0] as TensorShape;
       const upstream = shapeMap.get(edge.source);
-      if (!upstream || upstream.outputShapes.length === 0) return null;
-      const sourceNode = graph.nodes.find((n) => n.id === edge.source);
-      const sourceDef = sourceNode ? MODULE_REGISTRY.get(sourceNode.type) ?? null : null;
+      if (!upstream || upstream.outputShapes.length === 0) return [0, 0, 0] as TensorShape;
+      const sourceNode = nodeMap.get(edge.source);
+      const sourceDef = sourceNode ? MODULE_REGISTRY.get(sourceNode.type) : null;
       const portIndex = sourceDef
         ? sourceDef.outputs.findIndex((p) => p.id === edge.sourceHandle)
         : 0;
-      return upstream.outputShapes[portIndex] || null;
+      return upstream.outputShapes[portIndex] || [0, 0, 0] as TensorShape;
     });
 
     if (def.estimateParams) {
-      totalParams += def.estimateParams(inputShapes as never, node.params);
+      totalParams += def.estimateParams(inputShapes, node.params);
     }
     if (def.estimateFLOPs) {
-      totalFLOPs += def.estimateFLOPs(inputShapes as never, node.params);
+      totalFLOPs += def.estimateFLOPs(inputShapes, node.params);
     }
   }
 
