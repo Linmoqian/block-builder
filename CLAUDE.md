@@ -50,7 +50,6 @@ cd app && python server.py       # 启动后端服务器 (端口 8080)
 app/
 ├── server.py                    # Python 后端，处理拖拽/删除/连接/运行事件，维护 sample.py
 ├── index.html                   # Vite 入口 HTML
-├── environment.yml              # Conda 环境配置
 ├── torch/                       # PyTorch 相关代码
 ├── TmpSrc/sample.py             # 积木生成的代码文件（前后端共享）
 └── src/
