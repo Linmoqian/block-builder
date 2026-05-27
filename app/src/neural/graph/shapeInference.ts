@@ -31,6 +31,12 @@ export function topologicalSort(graph: GraphIR): string[] {
     }
   }
 
+  // Detect cycles: nodes not in result are part of a cycle
+  if (result.length < graph.nodes.length) {
+    const cyclic = graph.nodes.filter((n) => !result.includes(n.id)).map((n) => n.id);
+    console.warn(`Cycle detected involving nodes: ${cyclic.join(', ')}`);
+  }
+
   return result;
 }
 
@@ -53,7 +59,7 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
       continue;
     }
 
-    // Gather input shapes from upstream edges
+    // Gather input shapes from upstream edges (always push one entry per port)
     const inputShapes: TensorShape[] = [];
     for (const inputPort of def.inputs) {
       const edge = graph.edges.find(
@@ -71,7 +77,7 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
         } else {
           inputShapes.push([0, 0, 0]);
         }
-      } else if (inputPort.required) {
+      } else {
         inputShapes.push([0, 0, 0]);
       }
     }

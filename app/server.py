@@ -51,7 +51,13 @@ class DragHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             
+            # Sanitize: prevent directory traversal
+            file_param = os.path.basename(file_param)
             file_path = os.path.join(TMPSRC_DIR, file_param)
+            if not os.path.realpath(file_path).startswith(os.path.realpath(TMPSRC_DIR)):
+                self.send_response(403)
+                self.end_headers()
+                return
 
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -182,7 +188,13 @@ class DragHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             
+            # Sanitize: prevent directory traversal
+            file_param = os.path.basename(file_param)
             file_path = os.path.join(TMPSRC_DIR, file_param)
+            if not os.path.realpath(file_path).startswith(os.path.realpath(TMPSRC_DIR)):
+                self.send_response(403)
+                self.end_headers()
+                return
 
             # 执行对应文件
             try:

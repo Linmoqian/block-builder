@@ -41,6 +41,15 @@ export function uploadJson(): Promise<GraphIR> {
         reject(e);
       }
     };
+    input.oncancel = () => reject(new Error('Cancelled'));
+    // Also handle focus return without selection (some browsers)
+    const onFocus = () => {
+      setTimeout(() => {
+        if (!input.files?.length) reject(new Error('Cancelled'));
+      }, 500);
+      window.removeEventListener('focus', onFocus);
+    };
+    window.addEventListener('focus', onFocus);
     input.click();
   });
 }

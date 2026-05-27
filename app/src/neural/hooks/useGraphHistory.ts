@@ -11,13 +11,17 @@ const MAX_HISTORY = 50;
 export function useGraphHistory() {
   const history = useRef<Snapshot[]>([]);
   const pointer = useRef(-1);
-  const isUndoRedo = useRef(false);
+  const skipCount = useRef(0);
 
   const pushSnapshot = useCallback((nodes: Node[], edges: Edge[]) => {
-    if (isUndoRedo.current) {
-      isUndoRedo.current = false;
+    // Skip if this is an undo/redo-triggered update
+    if (skipCount.current > 0) {
+      skipCount.current--;
       return;
     }
+
+    // Don't record empty graph as first snapshot
+    if (nodes.length === 0 && history.current.length === 0) return;
 
     const snapshot: Snapshot = {
       nodes: JSON.parse(JSON.stringify(nodes)),
@@ -39,14 +43,15 @@ export function useGraphHistory() {
   const undo = useCallback((): Snapshot | null => {
     if (pointer.current <= 0) return null;
     pointer.current--;
-    isUndoRedo.current = true;
+    // loadGraphIR triggers setNodes + setEdges = 2 renders
+    skipCount.current = 2;
     return history.current[pointer.current];
   }, []);
 
   const redo = useCallback((): Snapshot | null => {
     if (pointer.current >= history.current.length - 1) return null;
     pointer.current++;
-    isUndoRedo.current = true;
+    skipCount.current = 2;
     return history.current[pointer.current];
   }, []);
 

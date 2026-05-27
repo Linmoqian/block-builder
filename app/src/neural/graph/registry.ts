@@ -103,7 +103,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     category: 'connector',
     color: '#ec4899',
     params: {
-      axis: { type: 'int', default: 1, min: 0, max: 3, label: 'Axis' },
+      axis: { type: 'int', default: 0, min: 0, max: 2, label: 'Axis' },
     },
     inputs: [
       { id: 'in_0', label: 'Input A', required: true },
@@ -114,10 +114,12 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
       if (!inputs[0] || !inputs[1]) return [[0, 0, 0]];
       const axis = params.axis as number;
       const result = [...inputs[0]] as number[];
-      if (axis === 1) {
-        result[0] = (inputs[0][0] as number) + (inputs[1][0] as number);
+      // In [C, H, W] notation: axis=0 is channels, axis=1 is H, axis=2 is W
+      if (axis >= 0 && axis <= 2) {
+        result[axis] = (inputs[0][axis] as number) + (inputs[1][axis] as number);
       }
-      if (inputs[0][1] !== inputs[1][1] || inputs[0][2] !== inputs[1][2]) {
+      // Spatial dimensions must match for channel concatenation
+      if (axis === 0 && (inputs[0][1] !== inputs[1][1] || inputs[0][2] !== inputs[1][2])) {
         return [[-1, -1, -1]];
       }
       return [result as TensorShape];

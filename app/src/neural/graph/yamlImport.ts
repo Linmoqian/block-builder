@@ -41,7 +41,8 @@ function argsToParams(type: string, args: (number | string | null)[]): Record<st
       if (args[2] !== undefined) params.mode = args[2] as string;
       break;
     case 'Concat':
-      if (args[0] !== undefined) params.axis = args[0] as number;
+      // YOLO uses NCHW axis (1=channels), we use [C,H,W] axis (0=channels)
+      if (args[0] !== undefined) params.axis = Math.max(0, (args[0] as number) - 1);
       break;
     case 'CBAM':
       if (args[0] !== undefined) params.reduction = args[0] as number;
@@ -89,7 +90,15 @@ export function importYaml(yamlString: string): GraphIR {
 
     if (!def) {
       console.warn(`Unknown module type: ${type}, skipping`);
-      layerIndexToNodeId.push(`unknown_${i}`);
+      // Push a placeholder ID so subsequent from-field offsets remain correct
+      const placeholderId = `unknown_${i}`;
+      nodes.push({
+        id: placeholderId,
+        type: 'Conv', // fallback type to keep graph valid
+        position: { x: 250, y: (i + 1) * 120 },
+        params: { out_channels: 64, kernel_size: 1, stride: 1 },
+      });
+      layerIndexToNodeId.push(placeholderId);
       continue;
     }
 

@@ -39,7 +39,12 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                   min={paramDef.min}
                   max={paramDef.max}
                   value={value as number}
-                  onChange={(e) => onParamChange(key, parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => {
+                    let v = parseInt(e.target.value, 10) || 0;
+                    if (paramDef.min !== undefined) v = Math.max(v, paramDef.min);
+                    if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
+                    onParamChange(key, v);
+                  }}
                   className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
                 />
               )}
@@ -51,7 +56,21 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                   min={paramDef.min}
                   max={paramDef.max}
                   value={value as number}
-                  onChange={(e) => onParamChange(key, parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    let v = parseFloat(e.target.value) || 0;
+                    if (paramDef.min !== undefined) v = Math.max(v, paramDef.min);
+                    if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
+                    onParamChange(key, v);
+                  }}
+                  className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
+                />
+              )}
+
+              {paramDef.type === 'string' && (
+                <input
+                  type="text"
+                  value={value as string}
+                  onChange={(e) => onParamChange(key, e.target.value)}
                   className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
                 />
               )}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { GraphIR } from '../graph/types';
 
 const STORAGE_KEY = 'neural-graph-autosave';
@@ -8,6 +8,7 @@ export function useGraphPersistence(
   loadGraphIR: (graph: GraphIR) => void
 ) {
   const isInitialLoad = useRef(true);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout>>();
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -25,9 +26,15 @@ export function useGraphPersistence(
     isInitialLoad.current = false;
   }, [loadGraphIR]);
 
-  // Auto-save on change (debounced)
-  const saveTimeout = useRef<ReturnType<typeof setTimeout>>();
-  const save = () => {
+  // Cleanup pending timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(saveTimeout.current);
+    };
+  }, []);
+
+  // Memoized debounced save
+  const save = useCallback(() => {
     if (isInitialLoad.current) return;
     clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
@@ -38,7 +45,7 @@ export function useGraphPersistence(
         // Ignore storage errors
       }
     }, 500);
-  };
+  }, [getGraphIR]);
 
   return { save };
 }
