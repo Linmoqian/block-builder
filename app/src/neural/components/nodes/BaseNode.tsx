@@ -8,10 +8,11 @@ interface BaseNodeProps {
   params: Record<string, ParamValue>;
   selected?: boolean;
   hasError?: boolean;
+  errorMessage?: string;
   inferredShape?: TensorShape | null;
 }
 
-export function BaseNode({ type, params, selected, hasError, inferredShape }: BaseNodeProps) {
+export function BaseNode({ type, params, selected, hasError, errorMessage, inferredShape }: BaseNodeProps) {
   const def = MODULE_REGISTRY[type];
   if (!def) return null;
 
@@ -38,7 +39,7 @@ export function BaseNode({ type, params, selected, hasError, inferredShape }: Ba
       </div>
 
       {/* Body: shape info */}
-      <div className="px-3 py-2 text-[10px] text-zinc-500 font-mono">
+      <div className="px-3 py-1.5 text-[10px] text-zinc-500 font-mono">
         {inferredShape && inferredShape[0] !== 0 ? (
           <span className={hasError ? 'text-red-500' : 'text-zinc-600'}>
             [{(inferredShape as number[]).join(', ')}]
@@ -47,6 +48,13 @@ export function BaseNode({ type, params, selected, hasError, inferredShape }: Ba
           <span className="text-zinc-300">--</span>
         )}
       </div>
+
+      {/* Error message */}
+      {hasError && errorMessage && (
+        <div className="px-3 py-1 text-[9px] text-red-500 bg-red-50 border-t border-red-100 rounded-b-[10px]">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Input handles */}
       {def.inputs.map((port, i) => (
