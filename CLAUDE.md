@@ -21,6 +21,12 @@ python server.py                 # 启动后端服务器 (端口 8080)
 
 前端和后端需同时运行，均在 `app/` 目录下：`npm run dev` + `python server.py`。
 
+## 环境配置
+
+- Conda 环境配置：`environment.yml`（根目录）
+- 安装：`conda env create -f environment.yml`
+- 激活：`conda activate x`
+
 ## Architecture
 
 ### 前后端双进程架构
@@ -100,6 +106,8 @@ environment.yml                     # Conda 环境配置（根目录）
 
 ## Notes
 
+- CLAUDE.md 和 AGENTS.md 已加入 .gitignore
+- TmpSrc/ 目录存放生成的代码文件，Vite watch 时被忽略
 - 环境变量 `GEMINI_API_KEY` 在 vite.config.ts 中注入（当前未使用）
 - AI Studio 环境下 `DISABLE_HMR=true` 禁用 HMR
 - 左侧边栏宽度硬编码 320px（用于判断拖拽是否进入画布）
