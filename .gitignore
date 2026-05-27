@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+__pycache__/
+CLAUDE.md
+AGENTS.md
+.claude/

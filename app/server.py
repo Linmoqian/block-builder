@@ -6,7 +6,11 @@
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
+import os
 import subprocess
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TMPSRC_DIR = os.path.join(BASE_DIR, 'TmpSrc')
 
 # 终端颜色代码
 GREEN = '\033[92m'
@@ -47,7 +51,7 @@ class DragHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             
-            file_path = f'TmpSrc/{file_param}'
+            file_path = os.path.join(TMPSRC_DIR, file_param)
 
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -101,12 +105,12 @@ class DragHandler(BaseHTTPRequestHandler):
             # 如果积木已存在，先删除旧行
             if block_id in block_print_map:
                 old_line_num = block_print_map[block_id]
-                with open('TmpSrc/sample.py', 'r', encoding='utf-8') as f:
+                with open(os.path.join(TMPSRC_DIR, 'sample.py'), 'r', encoding='utf-8') as f:
                     lines = f.readlines()
 
                 if 0 <= old_line_num < len(lines):
                     del lines[old_line_num]
-                    with open('TmpSrc/sample.py', 'w', encoding='utf-8') as f:
+                    with open(os.path.join(TMPSRC_DIR, 'sample.py'), 'w', encoding='utf-8') as f:
                         f.writelines(lines)
 
                     # 更新其他积木的行号
@@ -119,7 +123,7 @@ class DragHandler(BaseHTTPRequestHandler):
                 lines = f.readlines()
             line_num = len(lines)
 
-            with open('TmpSrc/sample.py', 'a', encoding='utf-8') as f:
+            with open(os.path.join(TMPSRC_DIR, 'sample.py'), 'a', encoding='utf-8') as f:
                 f.write(print_statement + '\n')
 
             block_print_map[block_id] = line_num
@@ -144,12 +148,12 @@ class DragHandler(BaseHTTPRequestHandler):
             # 删除对应的 print 语句
             if block_id in block_print_map:
                 line_num = block_print_map[block_id]
-                with open('TmpSrc/sample.py', 'r', encoding='utf-8') as f:
+                with open(os.path.join(TMPSRC_DIR, 'sample.py'), 'r', encoding='utf-8') as f:
                     lines = f.readlines()
 
                 if 0 <= line_num < len(lines):
                     del lines[line_num]
-                    with open('TmpSrc/sample.py', 'w', encoding='utf-8') as f:
+                    with open(os.path.join(TMPSRC_DIR, 'sample.py'), 'w', encoding='utf-8') as f:
                         f.writelines(lines)
 
                     # 更新其他积木的行号
@@ -178,7 +182,7 @@ class DragHandler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             
-            file_path = f'TmpSrc/{file_param}'
+            file_path = os.path.join(TMPSRC_DIR, file_param)
 
             # 执行对应文件
             try:
@@ -240,10 +244,9 @@ class DragHandler(BaseHTTPRequestHandler):
             code = data.get('code', '')
             
             try:
-                import os
-                if not os.path.exists('TmpSrc'):
-                    os.makedirs('TmpSrc')
-                with open('TmpSrc/network.py', 'w', encoding='utf-8') as f:
+                if not os.path.exists(TMPSRC_DIR):
+                    os.makedirs(TMPSRC_DIR)
+                with open(os.path.join(TMPSRC_DIR, 'network.py'), 'w', encoding='utf-8') as f:
                     f.write(code)
                 
                 print(f"{GREEN}[导出]{RESET} 代码已写入 TmpSrc/network.py")
