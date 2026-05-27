@@ -155,6 +155,116 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     outputs: [],
     inferShape: () => [],
   },
+
+  BatchNorm2d: {
+    type: 'BatchNorm2d',
+    label: 'BatchNorm2d',
+    category: 'basic',
+    color: '#14b8a6',
+    params: {
+      eps: { type: 'float', default: 1e-5, min: 1e-10, max: 1, label: 'Epsilon' },
+      momentum: { type: 'float', default: 0.1, min: 0, max: 1, label: 'Momentum' },
+    },
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
+  },
+
+  SiLU: {
+    type: 'SiLU',
+    label: 'SiLU',
+    category: 'basic',
+    color: '#a78bfa',
+    params: {},
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
+  },
+
+  MaxPool2d: {
+    type: 'MaxPool2d',
+    label: 'MaxPool2d',
+    category: 'basic',
+    color: '#f472b6',
+    params: {
+      kernel_size: { type: 'int', default: 2, min: 1, max: 16, label: 'Kernel Size' },
+      stride: { type: 'int', default: 2, min: 1, max: 16, label: 'Stride' },
+      padding: { type: 'int', default: 0, min: 0, max: 8, label: 'Padding' },
+    },
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs, params) => {
+      if (!inputs[0]) return [[0, 0, 0]];
+      const [c, h, w] = inputs[0];
+      const k = params.kernel_size as number;
+      const s = params.stride as number;
+      const p = params.padding as number;
+      return [[c, Math.floor((h + 2 * p - k) / s) + 1, Math.floor((w + 2 * p - k) / s) + 1]];
+    },
+  },
+
+  Flatten: {
+    type: 'Flatten',
+    label: 'Flatten',
+    category: 'basic',
+    color: '#fbbf24',
+    params: {
+      start_dim: { type: 'int', default: 1, min: 0, max: 4, label: 'Start Dim' },
+      end_dim: { type: 'int', default: -1, min: -4, max: 4, label: 'End Dim' },
+    },
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs) => {
+      if (!inputs[0]) return [[0]];
+      const shape = inputs[0];
+      if (shape.length === 3) return [[shape[0] * shape[1] * shape[2]]];
+      if (shape.length === 2) return [[shape[0] * shape[1]]];
+      return [shape];
+    },
+  },
+
+  Linear: {
+    type: 'Linear',
+    label: 'Linear',
+    category: 'basic',
+    color: '#6366f1',
+    params: {
+      out_features: { type: 'int', default: 1000, min: 1, max: 100000, label: 'Out Features' },
+      bias: { type: 'bool', default: true, label: 'Bias' },
+    },
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs, params) => {
+      if (!inputs[0]) return [[0]];
+      return [[params.out_features as number]];
+    },
+  },
+
+  CA: {
+    type: 'CA',
+    label: 'Coordinate Attention',
+    category: 'attention',
+    color: '#fb923c',
+    params: {
+      reduction: { type: 'int', default: 32, min: 1, max: 128, label: 'Reduction' },
+    },
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
+  },
+
+  SimAM: {
+    type: 'SimAM',
+    label: 'SimAM',
+    category: 'attention',
+    color: '#e879f9',
+    params: {
+      lambda_val: { type: 'float', default: 0.0001, min: 0, max: 1, label: 'Lambda' },
+    },
+    inputs: [{ id: 'in', label: 'Input', required: true }],
+    outputs: [{ id: 'out', label: 'Output', required: true }],
+    inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
+  },
 };
 
 /** Get modules grouped by category */

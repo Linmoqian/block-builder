@@ -131,6 +131,27 @@ export function exportPyTorch(graph: GraphIR): string {
       case 'Detect':
         lines.push(`        # Detect: num_classes=${p.num_classes}`);
         break;
+      case 'BatchNorm2d':
+        lines.push(`        self.${varName} = nn.BatchNorm2d(${getInputChannels(graph, node)})`);
+        break;
+      case 'SiLU':
+        lines.push(`        self.${varName} = nn.SiLU()`);
+        break;
+      case 'MaxPool2d':
+        lines.push(`        self.${varName} = nn.MaxPool2d(kernel_size=${p.kernel_size}, stride=${p.stride}, padding=${p.padding})`);
+        break;
+      case 'Flatten':
+        lines.push(`        self.${varName} = nn.Flatten(start_dim=${p.start_dim}, end_dim=${p.end_dim})`);
+        break;
+      case 'Linear':
+        lines.push(`        self.${varName} = nn.Linear(${getInputChannels(graph, node)}, ${p.out_features}, bias=${p.bias})`);
+        break;
+      case 'CA':
+        lines.push(`        # TODO: Coordinate Attention`);
+        break;
+      case 'SimAM':
+        lines.push(`        # TODO: SimAM`);
+        break;
     }
   }
 
@@ -158,6 +179,12 @@ export function exportPyTorch(graph: GraphIR): string {
     } else if (node.type === 'Detect') {
       lines.push(`        # Detect head (placeholder)`);
       lines.push(`        ${varName} = x`);
+    } else if (node.type === 'CA') {
+      const srcVar = incomingEdges.length > 0 ? getVarName(incomingEdges[0].source) : 'x';
+      lines.push(`        ${varName} = ${srcVar}  # CA placeholder`);
+    } else if (node.type === 'SimAM') {
+      const srcVar = incomingEdges.length > 0 ? getVarName(incomingEdges[0].source) : 'x';
+      lines.push(`        ${varName} = ${srcVar}  # SimAM placeholder`);
     } else {
       const srcVar = incomingEdges.length > 0 ? getVarName(incomingEdges[0].source) : 'x';
       lines.push(`        ${varName} = self.${varName}(${srcVar})`);
@@ -202,6 +229,11 @@ function getInputChannels(graph: GraphIR, node: GraphNode): number {
     case 'C2f': return srcNode.params.out_channels as number;
     case 'SPPF': return srcNode.params.out_channels as number;
     case 'CBAM': return getInputChannels(graph, srcNode);
+    case 'BatchNorm2d': return getInputChannels(graph, srcNode);
+    case 'SiLU': return getInputChannels(graph, srcNode);
+    case 'CA': return getInputChannels(graph, srcNode);
+    case 'SimAM': return getInputChannels(graph, srcNode);
+    case 'Concat': return getInputChannels(graph, srcNode);
     default: return 64;
   }
 }

@@ -50,6 +50,27 @@ function argsToParams(type: string, args: (number | string | null)[]): Record<st
     case 'Detect':
       if (args[0] !== undefined) params.num_classes = args[0] as number;
       break;
+    case 'BatchNorm2d':
+      if (args[0] !== undefined) params.eps = args[0] as number;
+      if (args[1] !== undefined) params.momentum = args[1] as number;
+      break;
+    case 'SiLU':
+      break;
+    case 'MaxPool2d':
+      if (args[0] !== undefined) params.kernel_size = args[0] as number;
+      if (args[1] !== undefined) params.stride = args[1] as number;
+      break;
+    case 'Flatten':
+      if (args[0] !== undefined) params.start_dim = args[0] as number;
+      break;
+    case 'Linear':
+      if (args[0] !== undefined) params.out_features = args[0] as number;
+      break;
+    case 'CA':
+      if (args[0] !== undefined) params.reduction = args[0] as number;
+      break;
+    case 'SimAM':
+      break;
     default:
       args.forEach((val, i) => {
         if (i < paramKeys.length && val !== null && val !== undefined) {

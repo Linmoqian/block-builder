@@ -21,6 +21,20 @@ function buildYoloArgs(type: string, params: Record<string, ParamValue>): (numbe
       return [params.reduction as number];
     case 'Detect':
       return [params.num_classes as number];
+    case 'BatchNorm2d':
+      return [];
+    case 'SiLU':
+      return [];
+    case 'MaxPool2d':
+      return [params.kernel_size as number, params.stride as number];
+    case 'Flatten':
+      return [];
+    case 'Linear':
+      return [params.out_features as number];
+    case 'CA':
+      return [params.reduction as number];
+    case 'SimAM':
+      return [];
     default:
       return Object.values(params) as (number | string | null)[];
   }
