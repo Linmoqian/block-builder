@@ -33,6 +33,6 @@
 - [x] 预设模板（YOLOv8-nano）
 
 ## Phase 5: 体验打磨
-- [ ] 撤销/重做
-- [ ] 键盘快捷键
-- [ ] 右侧 Tab 系统完善
+- [x] 撤销/重做（Ctrl+Z / Ctrl+Shift+Z）
+- [x] 键盘快捷键（Ctrl+S, Ctrl+E）
+- [x] 右侧 Tab 系统（Properties | YAML）
