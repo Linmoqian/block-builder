@@ -75,6 +75,24 @@ MODULE_REGISTRY.register({
     const wOut = Math.floor((w + 2 * p - k) / s) + 1;
     return [[params.out_channels as number, hOut, wOut]];
   },
+  estimateParams: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const k = params.kernel_size as number;
+    return inCh * outCh * k * k + outCh * 2; // conv weights + BN (weight + bias)
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const k = params.kernel_size as number;
+    const s = params.stride as number;
+    const p = Math.floor(k / 2);
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    const hOut = Math.floor((h + 2 * p - k) / s) + 1;
+    const wOut = Math.floor((w + 2 * p - k) / s) + 1;
+    return inCh * outCh * k * k * hOut * wOut;
+  },
 });
 
 MODULE_REGISTRY.register({
@@ -93,6 +111,21 @@ MODULE_REGISTRY.register({
     const [, h, w] = inputs[0];
     return [[params.out_channels as number, h, w]];
   },
+  estimateParams: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const n = params.n as number;
+    // Approximate: split conv + n bottlenecks (each with 2 convs)
+    return Math.round(0.5 * inCh * outCh * 3 * 3 * n);
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const n = params.n as number;
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    return Math.round(0.5 * inCh * outCh * 3 * 3 * n * h * w);
+  },
 });
 
 MODULE_REGISTRY.register({
@@ -110,6 +143,21 @@ MODULE_REGISTRY.register({
     if (!inputs[0]) return [[0, 0, 0]];
     const [, h, w] = inputs[0];
     return [[params.out_channels as number, h, w]];
+  },
+  estimateParams: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const k = params.kernel_size as number;
+    // 1x1 conv + 3 maxpool branches (simplified)
+    return inCh * outCh * 1 * 1 + outCh * (k * k + k * k + k * k);
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const k = params.kernel_size as number;
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    return (inCh * outCh * 1 * 1 + outCh * (k * k + k * k + k * k)) * h * w;
   },
 });
 
@@ -203,6 +251,16 @@ MODULE_REGISTRY.register({
   inputs: [{ id: 'in', label: 'Input', required: true }],
   outputs: [{ id: 'out', label: 'Output', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
+  estimateParams: (inputs) => {
+    const c = inputs[0]?.[0] || 0;
+    return 2 * c; // weight + bias
+  },
+  estimateFLOPs: (inputs) => {
+    const c = inputs[0]?.[0] || 0;
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    return 2 * c * h * w;
+  },
 });
 
 MODULE_REGISTRY.register({
@@ -235,6 +293,17 @@ MODULE_REGISTRY.register({
     const s = params.stride as number;
     const p = params.padding as number;
     return [[c, Math.floor((h + 2 * p - k) / s) + 1, Math.floor((w + 2 * p - k) / s) + 1]];
+  },
+  estimateFLOPs: (inputs, params) => {
+    const c = inputs[0]?.[0] || 0;
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    const k = params.kernel_size as number;
+    const s = params.stride as number;
+    const p = params.padding as number;
+    const hOut = Math.floor((h + 2 * p - k) / s) + 1;
+    const wOut = Math.floor((w + 2 * p - k) / s) + 1;
+    return c * hOut * wOut * k * k;
   },
 });
 
@@ -272,6 +341,17 @@ MODULE_REGISTRY.register({
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0]];
     return [[params.out_features as number]];
+  },
+  estimateParams: (inputs, params) => {
+    const inF = inputs[0]?.[0] || 0;
+    const outF = params.out_features as number;
+    const bias = params.bias as boolean;
+    return inF * outF + (bias ? outF : 0);
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inF = inputs[0]?.[0] || 0;
+    const outF = params.out_features as number;
+    return inF * outF;
   },
 });
 

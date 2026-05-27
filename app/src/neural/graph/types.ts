@@ -35,6 +35,8 @@ export interface ModuleDefinition {
   inputs: PortDef[];
   outputs: PortDef[];
   inferShape: (inputShapes: TensorShape[], params: Record<string, ParamValue>) => TensorShape[];
+  estimateParams?: (inputShapes: TensorShape[], params: Record<string, ParamValue>) => number;
+  estimateFLOPs?: (inputShapes: TensorShape[], params: Record<string, ParamValue>) => number;
 }
 
 /** A node instance on the canvas */

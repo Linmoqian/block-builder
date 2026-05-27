@@ -27,6 +27,7 @@ import { importYaml } from './graph/yamlImport';
 import { autoLayout } from './graph/autoLayout';
 import { PRESETS } from './graph/presets';
 import { TensorShape, ParamValue, InferredShape } from './graph/types';
+import { computeModelStats, formatParams, formatFLOPs } from './graph/modelStats';
 
 const ShapeContext = createContext<Map<string, InferredShape>>(new Map());
 
@@ -282,6 +283,11 @@ function NeuralEditorInner() {
 
   const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length + validationErrors.length;
 
+  const modelStats = useMemo(() => {
+    if (nodes.length === 0) return { totalParams: 0, totalFLOPs: 0 };
+    return computeModelStats(getGraphIR(), shapeMap);
+  }, [nodes, edges, getGraphIR, shapeMap]);
+
   const handleNavigate = useCallback(
     (nodeId: string) => {
       fitView({ nodes: [{ id: nodeId }], padding: 0.5, duration: 300 });
@@ -347,6 +353,11 @@ function NeuralEditorInner() {
             </Panel>
             <Panel position="bottom-left">
               <ErrorPanel errors={validationErrors} nodes={nodes} onNavigate={handleNavigate} />
+            </Panel>
+            <Panel position="bottom-right">
+              <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-full shadow-lg text-[10px] text-zinc-400 font-medium">
+                {formatParams(modelStats.totalParams)} params · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
+              </div>
             </Panel>
           </ReactFlow>
         </div>
