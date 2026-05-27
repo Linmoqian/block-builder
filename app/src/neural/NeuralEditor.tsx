@@ -262,6 +262,23 @@ function NeuralEditorInner() {
     return exportYaml(getGraphIR());
   }, [nodes, edges, getGraphIR]);
 
+  const errorEdgeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const err of validationErrors) {
+      if (err.edgeId) ids.add(err.edgeId);
+    }
+    return ids;
+  }, [validationErrors]);
+
+  const styledEdges = useMemo(() => {
+    if (errorEdgeIds.size === 0) return edges;
+    return edges.map((e) =>
+      errorEdgeIds.has(e.id)
+        ? { ...e, style: { stroke: '#ef4444', strokeWidth: 2, strokeDasharray: '5 5' }, animated: false }
+        : e
+    );
+  }, [edges, errorEdgeIds]);
+
   const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length + validationErrors.length;
 
   return (
@@ -297,7 +314,7 @@ function NeuralEditorInner() {
         <div ref={reactFlowWrapper} className="flex-1 min-w-0">
           <ReactFlow
             nodes={nodes}
-            edges={edges}
+            edges={styledEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
