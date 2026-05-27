@@ -92,12 +92,13 @@ export function useGraphState() {
   }, [nodes, edges]);
 
   const loadGraphIR = useCallback(
-    (graph: GraphIR) => {
+    (graph: GraphIR, selectedIds?: string[]) => {
       const rfNodes: RFNode[] = graph.nodes.map((n) => ({
         id: n.id,
         type: 'neural',
         position: n.position,
         data: { type: n.type, params: n.params },
+        ...(selectedIds?.includes(n.id) ? { selected: true } : {}),
       }));
 
       const rfEdges: RFEdge[] = graph.edges.map((e) => ({

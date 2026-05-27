@@ -105,40 +105,35 @@ function NeuralEditorInner() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if typing in an input
+      const isMod = e.ctrlKey || e.metaKey;
+
+      // Undo/Redo: always intercept, blur focused input first
+      const isUndo = isMod && e.key === 'z' && !e.shiftKey;
+      const isRedo = (isMod && e.key === 'z' && e.shiftKey) || (isMod && e.key === 'y');
+      if (isUndo || isRedo) {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        const snapshot = isUndo ? undo() : redo();
+        if (snapshot) {
+          const selectedIds = snapshot.nodes.filter((n) => n.selected).map((n) => n.id);
+          loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) }, selectedIds);
+        }
+        return;
+      }
+
+      // Skip other shortcuts if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
         return;
       }
 
-      // Ctrl+Z / Cmd+Z = Undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        const snapshot = undo();
-        if (snapshot) loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) });
-      }
-
-      // Ctrl+Shift+Z / Cmd+Shift+Z = Redo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        const snapshot = redo();
-        if (snapshot) loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) });
-      }
-
-      // Ctrl+Y / Cmd+Y = Redo (alternative)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-        e.preventDefault();
-        const snapshot = redo();
-        if (snapshot) loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) });
-      }
-
       // Ctrl+S / Cmd+S = Save JSON
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if (isMod && e.key === 's') {
         e.preventDefault();
         downloadJson(getGraphIR());
       }
 
       // Ctrl+E / Cmd+E = Export YAML
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+      if (isMod && e.key === 'e') {
         e.preventDefault();
         handleExportYaml();
       }
