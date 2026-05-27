@@ -13,6 +13,7 @@ import '@xyflow/react/dist/style.css';
 import { useGraphState, RFNode } from './hooks/useGraphState';
 import { useGraphPersistence } from './hooks/useGraphPersistence';
 import { useShapeInference } from './hooks/useShapeInference';
+import { useGraphHistory } from './hooks/useGraphHistory';
 import { ModulePalette } from './components/ModulePalette';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { YamlPreview } from './components/YamlPreview';
@@ -24,7 +25,7 @@ import { exportPyTorch } from './graph/pytorchExport';
 import { importYaml } from './graph/yamlImport';
 import { autoLayout } from './graph/autoLayout';
 import { PRESETS } from './graph/presets';
-import { TensorShape, ParamValue, InferredShape, GraphIR } from './graph/types';
+import { TensorShape, ParamValue, InferredShape } from './graph/types';
 
 const ShapeContext = createContext<Map<string, InferredShape>>(new Map());
 
@@ -70,6 +71,12 @@ function NeuralEditorInner() {
 
   const { save } = useGraphPersistence(getGraphIR, loadGraphIR);
   const shapeMap = useShapeInference(nodes, edges);
+  const { pushSnapshot, undo, redo, canUndo, canRedo } = useGraphHistory();
+
+  // Push snapshot on graph changes
+  useEffect(() => {
+    pushSnapshot(nodes, edges);
+  }, [nodes, edges, pushSnapshot]);
 
   // Track selected node
   useEffect(() => {
@@ -82,11 +89,51 @@ function NeuralEditorInner() {
     save();
   }, [nodes, edges, save]);
 
-  // Generate YAML preview
-  const yamlContent = useMemo(() => {
-    if (nodes.length === 0) return '';
-    return exportYaml(getGraphIR());
-  }, [nodes, edges, getGraphIR]);
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+        return;
+      }
+
+      // Ctrl+Z / Cmd+Z = Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        const snapshot = undo();
+        if (snapshot) loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) });
+      }
+
+      // Ctrl+Shift+Z / Cmd+Shift+Z = Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        const snapshot = redo();
+        if (snapshot) loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) });
+      }
+
+      // Ctrl+Y / Cmd+Y = Redo (alternative)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        const snapshot = redo();
+        if (snapshot) loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) });
+      }
+
+      // Ctrl+S / Cmd+S = Save JSON
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        downloadJson(getGraphIR());
+      }
+
+      // Ctrl+E / Cmd+E = Export YAML
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        handleExportYaml();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, loadGraphIR, getGraphIR]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -159,7 +206,6 @@ function NeuralEditorInner() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ yaml }),
     }).catch(() => {});
-    // Also download locally
     const blob = new Blob([yaml], { type: 'text/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -211,13 +257,17 @@ function NeuralEditorInner() {
     loadGraphIR(laid);
   }, [getGraphIR, loadGraphIR]);
 
-  // Count errors
+  const yamlContent = useMemo(() => {
+    if (nodes.length === 0) return '';
+    return exportYaml(getGraphIR());
+  }, [nodes, edges, getGraphIR]);
+
   const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length;
 
   return (
     <ShapeContext.Provider value={shapeMap}>
       <div className="flex h-full w-full">
-        {/* Left sidebar: module palette */}
+        {/* Left sidebar */}
         <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-zinc-100">
             <h2 className="text-sm font-bold text-zinc-700">Modules</h2>
@@ -225,67 +275,21 @@ function NeuralEditorInner() {
           </div>
           <ModulePalette />
           <div className="px-4 py-3 border-t border-zinc-100 space-y-2">
-            {/* File operations */}
             <div className="flex gap-2">
-              <button
-                onClick={handleSaveJson}
-                className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
-              >
-                Save
-              </button>
-              <button
-                onClick={handleLoadJson}
-                className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
-              >
-                Load
-              </button>
+              <button onClick={handleSaveJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Save</button>
+              <button onClick={handleLoadJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Load</button>
             </div>
-            {/* Import */}
-            <button
-              onClick={handleImportYaml}
-              className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
-            >
-              Import YAML
-            </button>
-            {/* Presets */}
-            <select
-              onChange={(e) => e.target.value && handleLoadPreset(e.target.value)}
-              defaultValue=""
-              className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer"
-            >
+            <button onClick={handleImportYaml} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Import YAML</button>
+            <select onChange={(e) => e.target.value && handleLoadPreset(e.target.value)} defaultValue="" className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer">
               <option value="" disabled>Load Preset...</option>
-              {Object.entries(PRESETS).map(([key, preset]) => (
-                <option key={key} value={key}>{preset.label}</option>
-              ))}
+              {Object.entries(PRESETS).map(([key, preset]) => (<option key={key} value={key}>{preset.label}</option>))}
             </select>
-            {/* Layout */}
-            <button
-              onClick={handleAutoLayout}
-              className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
-            >
-              Re-layout
-            </button>
-            {/* Export */}
+            <button onClick={handleAutoLayout} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Re-layout</button>
             <div className="flex gap-2">
-              <button
-                onClick={handleExportYaml}
-                className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-              >
-                Export YAML
-              </button>
-              <button
-                onClick={handleExportPyTorch}
-                className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                PyTorch
-              </button>
+              <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">Export YAML</button>
+              <button onClick={handleExportPyTorch} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">PyTorch</button>
             </div>
-            <button
-              onClick={clearGraph}
-              className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              Clear Canvas
-            </button>
+            <button onClick={clearGraph} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear Canvas</button>
           </div>
         </aside>
 
@@ -310,24 +314,16 @@ function NeuralEditorInner() {
           >
             <Background gap={16} size={1} />
             <Controls />
-            <MiniMap
-              nodeColor={(node) => {
-                const def = MODULE_REGISTRY[(node.data as { type: string }).type];
-                return def?.color || '#94a3b8';
-              }}
-              maskColor="rgba(0,0,0,0.1)"
-            />
+            <MiniMap nodeColor={(node) => MODULE_REGISTRY[(node.data as { type: string }).type]?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
             <Panel position="top-center">
               <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
-                Drag modules from left panel · Connect by dragging between handles
+                Drag modules · Connect handles · Ctrl+Z Undo · Ctrl+S Save
               </div>
             </Panel>
             <Panel position="bottom-left">
               <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-lg shadow-sm text-[10px] text-zinc-400 flex items-center gap-3">
                 <span>{nodes.length} nodes · {edges.length} edges</span>
-                {errorCount > 0 && (
-                  <span className="text-red-500 font-semibold">{errorCount} error{errorCount > 1 ? 's' : ''}</span>
-                )}
+                {errorCount > 0 && <span className="text-red-500 font-semibold">{errorCount} error{errorCount > 1 ? 's' : ''}</span>}
               </div>
             </Panel>
           </ReactFlow>
@@ -335,45 +331,18 @@ function NeuralEditorInner() {
 
         {/* Right sidebar */}
         <aside className="w-80 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
-          {/* Tabs */}
           <div className="flex border-b border-zinc-200">
-            <button
-              onClick={() => setRightTab('properties')}
-              className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                rightTab === 'properties'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
-                  : 'text-zinc-400 hover:text-zinc-600'
-              }`}
-            >
-              Properties
-            </button>
-            <button
-              onClick={() => setRightTab('yaml')}
-              className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                rightTab === 'yaml'
-                  ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
-                  : 'text-zinc-400 hover:text-zinc-600'
-              }`}
-            >
-              YAML Preview
-            </button>
+            <button onClick={() => setRightTab('properties')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'properties' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>Properties</button>
+            <button onClick={() => setRightTab('yaml')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'yaml' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>YAML</button>
           </div>
-
-          {/* Tab content */}
           {rightTab === 'properties' ? (
             selectedNode ? (
               <div className="flex-1 overflow-y-auto">
-                <PropertiesPanel
-                  nodeType={selectedNode.data.type}
-                  params={selectedNode.data.params}
-                  onParamChange={handleParamChange}
-                />
+                <PropertiesPanel nodeType={selectedNode.data.type} params={selectedNode.data.params} onParamChange={handleParamChange} />
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center p-4">
-                <p className="text-xs text-zinc-400 text-center">
-                  Click a node to edit its parameters
-                </p>
+                <p className="text-xs text-zinc-400 text-center">Click a node to edit parameters</p>
               </div>
             )
           ) : (
