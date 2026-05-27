@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect, createContext, useContext } from 'react';
+import React, { useCallback, useRef, useState, useEffect, createContext, useContext, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -15,9 +15,12 @@ import { useGraphPersistence } from './hooks/useGraphPersistence';
 import { useShapeInference } from './hooks/useShapeInference';
 import { ModulePalette } from './components/ModulePalette';
 import { PropertiesPanel } from './components/PropertiesPanel';
+import { YamlPreview } from './components/YamlPreview';
 import { BaseNode } from './components/nodes/BaseNode';
 import { MODULE_REGISTRY } from './graph/registry';
 import { downloadJson, uploadJson } from './graph/jsonIO';
+import { exportYaml } from './graph/yamlExport';
+import { exportPyTorch } from './graph/pytorchExport';
 import { TensorShape, ParamValue, InferredShape } from './graph/types';
 
 const ShapeContext = createContext<Map<string, InferredShape>>(new Map());
@@ -40,10 +43,13 @@ function NeuralNode({ id, data, selected }: { id: string; data: { type: string; 
 
 const nodeTypes = { neural: NeuralNode };
 
+type RightTab = 'properties' | 'yaml';
+
 function NeuralEditorInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
+  const [rightTab, setRightTab] = useState<RightTab>('properties');
 
   const {
     nodes,
@@ -72,6 +78,12 @@ function NeuralEditorInner() {
   useEffect(() => {
     save();
   }, [nodes, edges, save]);
+
+  // Generate YAML preview
+  const yamlContent = useMemo(() => {
+    if (nodes.length === 0) return '';
+    return exportYaml(getGraphIR());
+  }, [nodes, edges, getGraphIR]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -106,6 +118,7 @@ function NeuralEditorInner() {
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       setSelectedNode(node as RFNode);
+      setRightTab('properties');
     },
     []
   );
@@ -136,6 +149,32 @@ function NeuralEditorInner() {
     }
   }, [loadGraphIR]);
 
+  const handleExportYaml = useCallback(() => {
+    const yaml = exportYaml(getGraphIR());
+    fetch('http://localhost:8080/export-yaml', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ yaml }),
+    }).catch(() => {});
+    // Also download locally
+    const blob = new Blob([yaml], { type: 'text/yaml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'model.yaml';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [getGraphIR]);
+
+  const handleExportPyTorch = useCallback(() => {
+    const code = exportPyTorch(getGraphIR());
+    fetch('http://localhost:8080/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    }).catch(() => {});
+  }, [getGraphIR]);
+
   // Count errors
   const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length;
 
@@ -155,13 +194,27 @@ function NeuralEditorInner() {
                 onClick={handleSaveJson}
                 className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
               >
-                Save JSON
+                Save
               </button>
               <button
                 onClick={handleLoadJson}
                 className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
               >
-                Load JSON
+                Load
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportYaml}
+                className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+              >
+                YAML
+              </button>
+              <button
+                onClick={handleExportPyTorch}
+                className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                PyTorch
               </button>
             </div>
             <button
@@ -217,24 +270,52 @@ function NeuralEditorInner() {
           </ReactFlow>
         </div>
 
-        {/* Right sidebar: properties */}
-        <aside className="w-72 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100">
-            <h2 className="text-sm font-bold text-zinc-700">Properties</h2>
+        {/* Right sidebar */}
+        <aside className="w-80 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
+          {/* Tabs */}
+          <div className="flex border-b border-zinc-200">
+            <button
+              onClick={() => setRightTab('properties')}
+              className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                rightTab === 'properties'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                  : 'text-zinc-400 hover:text-zinc-600'
+              }`}
+            >
+              Properties
+            </button>
+            <button
+              onClick={() => setRightTab('yaml')}
+              className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                rightTab === 'yaml'
+                  ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                  : 'text-zinc-400 hover:text-zinc-600'
+              }`}
+            >
+              YAML Preview
+            </button>
           </div>
-          {selectedNode ? (
-            <div className="flex-1 overflow-y-auto">
-              <PropertiesPanel
-                nodeType={selectedNode.data.type}
-                params={selectedNode.data.params}
-                onParamChange={handleParamChange}
-              />
-            </div>
+
+          {/* Tab content */}
+          {rightTab === 'properties' ? (
+            selectedNode ? (
+              <div className="flex-1 overflow-y-auto">
+                <PropertiesPanel
+                  nodeType={selectedNode.data.type}
+                  params={selectedNode.data.params}
+                  onParamChange={handleParamChange}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <p className="text-xs text-zinc-400 text-center">
+                  Click a node to edit its parameters
+                </p>
+              </div>
+            )
           ) : (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <p className="text-xs text-zinc-400 text-center">
-                Click a node to edit its parameters
-              </p>
+            <div className="flex-1 overflow-hidden">
+              <YamlPreview yaml={yamlContent} />
             </div>
           )}
         </aside>

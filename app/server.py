@@ -269,6 +269,39 @@ class DragHandler(BaseHTTPRequestHandler):
                     'status': 'error',
                     'error': str(e)
                 }).encode('utf-8'))
+        elif self.path == '/export-yaml':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode('utf-8'))
+
+            yaml_content = data.get('yaml', '')
+
+            try:
+                if not os.path.exists(TMPSRC_DIR):
+                    os.makedirs(TMPSRC_DIR)
+                with open(os.path.join(TMPSRC_DIR, 'model.yaml'), 'w', encoding='utf-8') as f:
+                    f.write(yaml_content)
+
+                print(f"{GREEN}[导出]{RESET} YAML 已写入 TmpSrc/model.yaml")
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'ok',
+                    'message': 'YAML exported successfully'
+                }).encode('utf-8'))
+            except Exception as e:
+                print(f"{YELLOW}[导出]{RESET} YAML 失败: {str(e)}")
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'error',
+                    'error': str(e)
+                }).encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()
