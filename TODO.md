@@ -28,9 +28,9 @@
 - [x] server.py /export-yaml 端点
 
 ## Phase 4: YAML 导入 + 预设模板
-- [ ] YAML 导入（需要 js-yaml 依赖）
-- [ ] 自动布局算法
-- [ ] 预设模板（YOLOv8-n/s, YOLOv11-n）
+- [x] YAML 导入（js-yaml）
+- [x] 自动布局算法
+- [x] 预设模板（YOLOv8-nano）
 
 ## Phase 5: 体验打磨
 - [ ] 撤销/重做
