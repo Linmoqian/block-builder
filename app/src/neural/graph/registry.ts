@@ -236,7 +236,11 @@ MODULE_REGISTRY.register({
     { id: 'p5', label: 'P5 (20x20)', required: true },
   ],
   outputs: [],
-  inferShape: () => [],
+  inferShape: (inputs, params) => {
+    if (inputs.length === 0 || inputs[0][0] === 0) return [];
+    const nc = (params.num_classes as number) || 80;
+    return [[inputs.length, nc + 5]]; // scales × (nc + 5)
+  },
 });
 
 MODULE_REGISTRY.register({
