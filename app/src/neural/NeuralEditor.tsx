@@ -56,6 +56,7 @@ function NeuralEditorInner() {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('properties');
+  const pendingFitView = useRef(false);
 
   const {
     nodes,
@@ -85,6 +86,16 @@ function NeuralEditorInner() {
     const selected = nodes.find((n) => n.selected) || null;
     setSelectedNode(selected);
   }, [nodes]);
+
+  // Fit view after loading graph (preset/import/layout)
+  useEffect(() => {
+    if (pendingFitView.current && nodes.length > 0) {
+      pendingFitView.current = false;
+      requestAnimationFrame(() => {
+        fitView({ padding: 0.2, duration: 300 });
+      });
+    }
+  }, [nodes, fitView]);
 
   // Auto-save on graph changes
   useEffect(() => {
@@ -196,11 +207,11 @@ function NeuralEditorInner() {
     try {
       const graph = await uploadJson();
       loadGraphIR(graph);
-      setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
+      pendingFitView.current = true;
     } catch (e) {
       console.error('Failed to load graph:', e);
     }
-  }, [loadGraphIR, fitView]);
+  }, [loadGraphIR]);
 
   const handleExportYaml = useCallback(() => {
     const yaml = exportYaml(getGraphIR());
@@ -239,29 +250,29 @@ function NeuralEditorInner() {
         const graph = importYaml(text);
         const laid = autoLayout(graph);
         loadGraphIR(laid);
-        setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
+        pendingFitView.current = true;
       } catch (e) {
         console.error('Failed to import YAML:', e);
       }
     };
     input.click();
-  }, [loadGraphIR, fitView]);
+  }, [loadGraphIR]);
 
   const handleLoadPreset = useCallback((presetKey: string) => {
     const preset = PRESETS[presetKey];
     if (preset) {
       const laid = autoLayout(preset.graph);
       loadGraphIR(laid);
-      setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
+      pendingFitView.current = true;
     }
-  }, [loadGraphIR, fitView]);
+  }, [loadGraphIR]);
 
   const handleAutoLayout = useCallback(() => {
     const graph = getGraphIR();
     const laid = autoLayout(graph);
     loadGraphIR(laid);
-    setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
-  }, [getGraphIR, loadGraphIR, fitView]);
+    pendingFitView.current = true;
+  }, [getGraphIR, loadGraphIR]);
 
   const yamlContent = useMemo(() => {
     if (nodes.length === 0) return '';
