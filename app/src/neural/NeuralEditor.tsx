@@ -327,7 +327,7 @@ function NeuralEditorInner() {
               <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">Export YAML</button>
               <button onClick={handleExportPyTorch} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">PyTorch</button>
             </div>
-            <button onClick={clearGraph} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear Canvas</button>
+            <button onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear Canvas</button>
           </div>
         </aside>
 
