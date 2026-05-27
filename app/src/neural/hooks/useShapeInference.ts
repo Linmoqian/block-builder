@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { inferAllShapes } from '../graph/shapeInference';
-import { InferredShape, ParamValue } from '../graph/types';
+import { validateGraph } from '../graph/validator';
+import { InferredShape, ParamValue, ValidationError } from '../graph/types';
 import { GraphIR } from '../graph/types';
 
 export function useShapeInference(
   nodes: Node<{ type: string; params: Record<string, ParamValue> }>[],
   edges: Edge[]
-): Map<string, InferredShape> {
+): { shapeMap: Map<string, InferredShape>; validationErrors: ValidationError[] } {
   return useMemo(() => {
-    if (nodes.length === 0) return new Map();
+    if (nodes.length === 0) return { shapeMap: new Map(), validationErrors: [] };
 
     const graph: GraphIR = {
       nodes: nodes.map((n) => ({
@@ -27,6 +28,8 @@ export function useShapeInference(
       })),
     };
 
-    return inferAllShapes(graph);
+    const shapeMap = inferAllShapes(graph);
+    const validationErrors = validateGraph(graph);
+    return { shapeMap, validationErrors };
   }, [nodes, edges]);
 }

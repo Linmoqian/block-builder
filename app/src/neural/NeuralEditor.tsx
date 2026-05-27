@@ -70,7 +70,7 @@ function NeuralEditorInner() {
   } = useGraphState();
 
   const { save } = useGraphPersistence(getGraphIR, loadGraphIR);
-  const shapeMap = useShapeInference(nodes, edges);
+  const { shapeMap, validationErrors } = useShapeInference(nodes, edges);
   const { pushSnapshot, undo, redo, canUndo, canRedo } = useGraphHistory();
 
   // Push snapshot on graph changes
@@ -262,7 +262,7 @@ function NeuralEditorInner() {
     return exportYaml(getGraphIR());
   }, [nodes, edges, getGraphIR]);
 
-  const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length;
+  const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length + validationErrors.length;
 
   return (
     <ShapeContext.Provider value={shapeMap}>
