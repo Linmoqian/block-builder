@@ -94,19 +94,25 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
     );
     if (missingInputs.length > 0) {
       hasError = true;
-      errorMessage = `Missing input: ${missingInputs.map((p) => p.label).join(', ')}`;
+      errorMessage = `缺少输入: ${missingInputs.map((p) => p.label).join(', ')}`;
     }
 
     // Check for zero-dimension outputs (upstream disconnected)
     if (!hasError && outputShapes.some((s) => s[0] === 0 && def.inputs.length > 0)) {
       hasError = true;
-      errorMessage = 'Disconnected input';
+      errorMessage = '输入未连接';
     }
 
-    // Check for mismatch sentinel
+    // Check for mismatch sentinel (from Concat spatial dimension mismatch)
     if (!hasError && outputShapes.some((s) => s[0] === -1)) {
       hasError = true;
-      errorMessage = 'Dimension mismatch';
+      if (node.type === 'Concat' && inputShapes[0] && inputShapes[1]) {
+        const shapeA = inputShapes[0];
+        const shapeB = inputShapes[1];
+        errorMessage = `Concat 空间维度不匹配：输入 A [${shapeA[1]},${shapeA[2]}]，输入 B [${shapeB[1]},${shapeB[2]}]。建议在空间维度较小的输入前添加 Upsample 节点。`;
+      } else {
+        errorMessage = '维度不匹配';
+      }
     }
 
     shapeMap.set(nodeId, {

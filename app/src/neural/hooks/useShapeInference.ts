@@ -29,7 +29,7 @@ export function useShapeInference(
     };
 
     const shapeMap = inferAllShapes(graph);
-    const validationErrors = validateGraph(graph);
+    const validationErrors = validateGraph(graph, shapeMap);
     return { shapeMap, validationErrors };
   }, [nodes, edges]);
 }

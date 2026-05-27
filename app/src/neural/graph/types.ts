@@ -75,7 +75,9 @@ export interface InferredShape {
 
 /** Graph validation error */
 export interface ValidationError {
-  type: 'cycle' | 'missing_input' | 'shape_mismatch' | 'disconnected';
+  type: 'cycle' | 'missing_input' | 'shape_mismatch' | 'disconnected' | 'dimension_mismatch';
   nodeId?: string;
+  edgeId?: string;
   message: string;
+  suggestion?: string;
 }
