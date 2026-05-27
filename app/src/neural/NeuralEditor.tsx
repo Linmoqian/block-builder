@@ -21,7 +21,10 @@ import { MODULE_REGISTRY } from './graph/registry';
 import { downloadJson, uploadJson } from './graph/jsonIO';
 import { exportYaml } from './graph/yamlExport';
 import { exportPyTorch } from './graph/pytorchExport';
-import { TensorShape, ParamValue, InferredShape } from './graph/types';
+import { importYaml } from './graph/yamlImport';
+import { autoLayout } from './graph/autoLayout';
+import { PRESETS } from './graph/presets';
+import { TensorShape, ParamValue, InferredShape, GraphIR } from './graph/types';
 
 const ShapeContext = createContext<Map<string, InferredShape>>(new Map());
 
@@ -175,6 +178,39 @@ function NeuralEditorInner() {
     }).catch(() => {});
   }, [getGraphIR]);
 
+  const handleImportYaml = useCallback(async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.yaml,.yml';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const graph = importYaml(text);
+        const laid = autoLayout(graph);
+        loadGraphIR(laid);
+      } catch (e) {
+        console.error('Failed to import YAML:', e);
+      }
+    };
+    input.click();
+  }, [loadGraphIR]);
+
+  const handleLoadPreset = useCallback((presetKey: string) => {
+    const preset = PRESETS[presetKey];
+    if (preset) {
+      const laid = autoLayout(preset.graph);
+      loadGraphIR(laid);
+    }
+  }, [loadGraphIR]);
+
+  const handleAutoLayout = useCallback(() => {
+    const graph = getGraphIR();
+    const laid = autoLayout(graph);
+    loadGraphIR(laid);
+  }, [getGraphIR, loadGraphIR]);
+
   // Count errors
   const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length;
 
@@ -189,6 +225,7 @@ function NeuralEditorInner() {
           </div>
           <ModulePalette />
           <div className="px-4 py-3 border-t border-zinc-100 space-y-2">
+            {/* File operations */}
             <div className="flex gap-2">
               <button
                 onClick={handleSaveJson}
@@ -203,12 +240,38 @@ function NeuralEditorInner() {
                 Load
               </button>
             </div>
+            {/* Import */}
+            <button
+              onClick={handleImportYaml}
+              className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
+            >
+              Import YAML
+            </button>
+            {/* Presets */}
+            <select
+              onChange={(e) => e.target.value && handleLoadPreset(e.target.value)}
+              defaultValue=""
+              className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer"
+            >
+              <option value="" disabled>Load Preset...</option>
+              {Object.entries(PRESETS).map(([key, preset]) => (
+                <option key={key} value={key}>{preset.label}</option>
+              ))}
+            </select>
+            {/* Layout */}
+            <button
+              onClick={handleAutoLayout}
+              className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200"
+            >
+              Re-layout
+            </button>
+            {/* Export */}
             <div className="flex gap-2">
               <button
                 onClick={handleExportYaml}
                 className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
               >
-                YAML
+                Export YAML
               </button>
               <button
                 onClick={handleExportPyTorch}
