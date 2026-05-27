@@ -17,6 +17,7 @@ import { useGraphHistory } from './hooks/useGraphHistory';
 import { ModulePalette } from './components/ModulePalette';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { YamlPreview } from './components/YamlPreview';
+import { ErrorPanel } from './components/ErrorPanel';
 import { BaseNode } from './components/nodes/BaseNode';
 import { MODULE_REGISTRY } from './graph/registry';
 import { downloadJson, uploadJson } from './graph/jsonIO';
@@ -51,7 +52,7 @@ type RightTab = 'properties' | 'yaml';
 
 function NeuralEditorInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('properties');
 
@@ -281,6 +282,13 @@ function NeuralEditorInner() {
 
   const errorCount = Array.from(shapeMap.values()).filter((s) => s.hasError).length + validationErrors.length;
 
+  const handleNavigate = useCallback(
+    (nodeId: string) => {
+      fitView({ nodes: [{ id: nodeId }], padding: 0.5, duration: 300 });
+    },
+    [fitView]
+  );
+
   return (
     <ShapeContext.Provider value={shapeMap}>
       <div className="flex h-full w-full">
@@ -338,10 +346,7 @@ function NeuralEditorInner() {
               </div>
             </Panel>
             <Panel position="bottom-left">
-              <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-lg shadow-sm text-[10px] text-zinc-400 flex items-center gap-3">
-                <span>{nodes.length} nodes · {edges.length} edges</span>
-                {errorCount > 0 && <span className="text-red-500 font-semibold">{errorCount} error{errorCount > 1 ? 's' : ''}</span>}
-              </div>
+              <ErrorPanel errors={validationErrors} nodes={nodes} onNavigate={handleNavigate} />
             </Panel>
           </ReactFlow>
         </div>
