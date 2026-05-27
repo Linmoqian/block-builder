@@ -13,7 +13,7 @@ interface BaseNodeProps {
 }
 
 export function BaseNode({ type, params, selected, hasError, errorMessage, inferredShape }: BaseNodeProps) {
-  const def = MODULE_REGISTRY[type];
+  const def = MODULE_REGISTRY.get(type);
   if (!def) return null;
 
   const borderColor = hasError

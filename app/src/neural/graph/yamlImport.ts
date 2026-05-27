@@ -11,7 +11,7 @@ interface YoloLayer {
 
 /** Map YOLO positional args to named params for a module type */
 function argsToParams(type: string, args: (number | string | null)[]): Record<string, ParamValue> {
-  const def = MODULE_REGISTRY[type];
+  const def = MODULE_REGISTRY.get(type);
   if (!def) return {};
 
   const paramKeys = Object.keys(def.params);
@@ -125,7 +125,7 @@ export function importYaml(yamlString: string): GraphIR {
     const type = layer.module.replace(/^nn\./, '');
     // Substitute nc placeholder in args
     const args = layer.args.map(a => (a === 'nc' && nc ? nc : a));
-    const def = MODULE_REGISTRY[type];
+    const def = MODULE_REGISTRY.get(type);
 
     if (!def) {
       console.warn(`Unknown module type: ${type}, skipping`);
@@ -164,7 +164,7 @@ export function importYaml(yamlString: string): GraphIR {
       const sourceId = layerIndexToNodeId[actualIdx];
 
       if (sourceId) {
-        const sourceDef = MODULE_REGISTRY[nodes.find((n) => n.id === sourceId)?.type || ''];
+        const sourceDef = MODULE_REGISTRY.get(nodes.find((n) => n.id === sourceId)?.type || '');
         const targetDef = def;
 
         // Determine which input port to use

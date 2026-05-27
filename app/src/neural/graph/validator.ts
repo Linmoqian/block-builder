@@ -13,7 +13,7 @@ export function validateGraph(
     const labels = cycleNodes
       .map((id) => {
         const node = graph.nodes.find((n) => n.id === id);
-        const def = node ? MODULE_REGISTRY[node.type] : null;
+        const def = node ? MODULE_REGISTRY.get(node.type) : null;
         return def ? `${def.label}(${id.slice(0, 6)})` : id.slice(0, 6);
       })
       .join(' → ');
@@ -26,7 +26,7 @@ export function validateGraph(
 
   // Missing required inputs
   for (const node of graph.nodes) {
-    const def = MODULE_REGISTRY[node.type];
+    const def = MODULE_REGISTRY.get(node.type);
     if (!def) continue;
 
     for (const inputPort of def.inputs) {
@@ -48,7 +48,7 @@ export function validateGraph(
 
   // Disconnected (isolated) nodes — no incoming or outgoing edges
   for (const node of graph.nodes) {
-    const def = MODULE_REGISTRY[node.type];
+    const def = MODULE_REGISTRY.get(node.type);
     // Skip Input nodes (they have no incoming edges by design)
     if (!def || def.category === 'input') continue;
 
@@ -72,7 +72,7 @@ export function validateGraph(
       const targetNode = graph.nodes.find((n) => n.id === edge.target);
       if (!sourceShape || !targetNode) continue;
 
-      const targetDef = MODULE_REGISTRY[targetNode.type];
+      const targetDef = MODULE_REGISTRY.get(targetNode.type);
       if (!targetDef) continue;
 
       // Only check Concat nodes for spatial dimension mismatch
@@ -93,8 +93,8 @@ export function validateGraph(
         // Get the actual shapes for each input port
         const sourceNode = graph.nodes.find((n) => n.id === edge.source);
         const otherSourceNode = graph.nodes.find((n) => n.id === otherEdge.source);
-        const sourceDef = sourceNode ? MODULE_REGISTRY[sourceNode.type] : null;
-        const otherSourceDef = otherSourceNode ? MODULE_REGISTRY[otherSourceNode.type] : null;
+        const sourceDef = sourceNode ? MODULE_REGISTRY.get(sourceNode.type) : null;
+        const otherSourceDef = otherSourceNode ? MODULE_REGISTRY.get(otherSourceNode.type) : null;
 
         const portIndex = sourceDef
           ? sourceDef.outputs.findIndex((p) => p.id === edge.sourceHandle)

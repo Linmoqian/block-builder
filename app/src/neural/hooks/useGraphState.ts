@@ -19,7 +19,7 @@ export function useGraphState() {
 
   const addNode = useCallback(
     (type: string, position: { x: number; y: number }) => {
-      const def = MODULE_REGISTRY[type];
+      const def = MODULE_REGISTRY.get(type);
       if (!def) return;
 
       const defaultParams: Record<string, ParamValue> = {};

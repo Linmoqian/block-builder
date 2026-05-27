@@ -102,7 +102,7 @@ function emitYamlLine(
   index: number,
   nodeIdToIndex: Map<string, number>
 ): string {
-  const def = MODULE_REGISTRY[node.type];
+  const def = MODULE_REGISTRY.get(node.type);
   if (!def) return `  # unknown: ${node.type}`;
 
   // Build "from" field

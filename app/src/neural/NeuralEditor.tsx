@@ -144,7 +144,7 @@ function NeuralEditorInner() {
     (event: React.DragEvent) => {
       event.preventDefault();
       const type = event.dataTransfer.getData('application/reactflow');
-      if (!type || !MODULE_REGISTRY[type]) return;
+      if (!type || !MODULE_REGISTRY.has(type)) return;
 
       const position = screenToFlowPosition({
         x: event.clientX,
@@ -331,7 +331,7 @@ function NeuralEditorInner() {
           >
             <Background gap={16} size={1} />
             <Controls />
-            <MiniMap nodeColor={(node) => MODULE_REGISTRY[(node.data as { type: string }).type]?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
+            <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
             <Panel position="top-center">
               <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
                 Drag modules · Connect handles · Ctrl+Z Undo · Ctrl+S Save

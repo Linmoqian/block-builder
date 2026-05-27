@@ -9,7 +9,7 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesPanelProps) {
-  const def = MODULE_REGISTRY[nodeType];
+  const def = MODULE_REGISTRY.get(nodeType);
   if (!def) return null;
 
   return (

@@ -48,7 +48,7 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
     const node = graph.nodes.find((n) => n.id === nodeId);
     if (!node) continue;
 
-    const def = MODULE_REGISTRY[node.type];
+    const def = MODULE_REGISTRY.get(node.type);
     if (!def) {
       shapeMap.set(nodeId, {
         nodeId,
@@ -69,7 +69,7 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
         const upstream = shapeMap.get(edge.source);
         if (upstream && upstream.outputShapes.length > 0) {
           const sourceNode = graph.nodes.find((n) => n.id === edge.source);
-          const sourceDef = sourceNode ? MODULE_REGISTRY[sourceNode.type] : null;
+          const sourceDef = sourceNode ? MODULE_REGISTRY.get(sourceNode.type) ?? null : null;
           const portIndex = sourceDef
             ? sourceDef.outputs.findIndex((p) => p.id === edge.sourceHandle)
             : 0;
