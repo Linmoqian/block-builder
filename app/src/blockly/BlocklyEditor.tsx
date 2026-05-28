@@ -9,6 +9,8 @@ import * as Blockly from 'blockly';
 import type { Workspace } from 'blockly/core';
 import Editor from '@monaco-editor/react';
 import 'blockly/blocks';
+import { Code2, Play, Download, Box } from 'lucide-react';
+import { motion } from 'motion/react';
 
 import { toolboxConfig } from './toolbox';
 import { YOLO_PRESETS } from './presets';
@@ -43,6 +45,27 @@ export default function BlocklyEditor(): React.ReactElement {
     setCode(generated);
   }, []);
 
+  const handleExportCode = useCallback(() => {
+    if (!code) return;
+    const blob = new Blob([code], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'model.py';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [code]);
+
+  const handleRunCode = useCallback(() => {
+    if (!code) return;
+    fetch('http://localhost:8080/run?file=network.py', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        console.log('Run result:', data);
+      })
+      .catch(() => {});
+  }, [code]);
+
   const beforeMount = (monaco: any) => {
     if (typeof window === 'undefined') return;
     ;(window as any).MonacoEnvironment = (window as any).MonacoEnvironment || {};
@@ -58,26 +81,55 @@ export default function BlocklyEditor(): React.ReactElement {
 
   return (
     <div className="flex flex-1 min-h-0">
+      {/* Left: Blockly canvas */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">YOLO 预设</span>
+        {/* Toolbar */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center gap-3 px-4 py-2 bg-white/60 backdrop-blur-xl border-b border-zinc-200/40 shrink-0"
+        >
+          <div className="flex items-center gap-2">
+            <Box size={15} className="text-violet-500" strokeWidth={2} />
+            <span className="text-xs font-semibold text-zinc-700">积木编程</span>
+          </div>
+          <div className="h-4 w-px bg-zinc-200" />
+          <span className="text-[11px] text-zinc-400 font-medium">预设</span>
           <select
             onChange={(e) => { if (e.target.value) handleLoadPreset(e.target.value); e.target.value = ''; }}
             defaultValue=""
-            className="py-1 px-2 text-xs bg-zinc-700 text-zinc-200 rounded border border-zinc-600 outline-none"
+            className="py-1 px-2.5 text-xs font-medium bg-white/80 text-zinc-600 rounded-lg border border-zinc-200/60 outline-none hover:border-zinc-300 transition-colors cursor-pointer"
           >
             <option value="" disabled>选择预设...</option>
             {Object.entries(YOLO_PRESETS).map(([key, preset]) => (
               <option key={key} value={key}>{preset.label}</option>
             ))}
           </select>
-        </div>
+          <div className="flex-1" />
+          <button
+            onClick={handleRunCode}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+          >
+            <Play size={12} fill="currentColor" />
+            运行
+          </button>
+          <button
+            onClick={handleExportCode}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium text-zinc-500 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+          >
+            <Download size={12} />
+            导出
+          </button>
+        </motion.div>
+
+        {/* Blockly workspace */}
         <div className="flex-1">
           <BlocklyWorkspace
             className="h-full w-full"
             toolboxConfiguration={toolboxConfig}
             workspaceConfiguration={{
-              grid: { spacing: 20, length: 2, colour: '#ccc', snap: true },
+              grid: { spacing: 20, length: 2, colour: '#d6d3d1', snap: true },
               zoom: { controls: true, wheel: true, startScale: 0.9 },
               trashcan: true,
               renderer: 'thrasos',
@@ -87,9 +139,21 @@ export default function BlocklyEditor(): React.ReactElement {
           />
         </div>
       </div>
-      <aside className="w-96 bg-zinc-900 border-l border-zinc-700 flex flex-col shrink-0 overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Python 代码</span>
+
+      {/* Right: Code preview */}
+      <aside className="w-96 bg-zinc-950 flex flex-col shrink-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/60">
+          <div className="flex items-center gap-2">
+            <Code2 size={13} className="text-zinc-500" />
+            <span className="text-[11px] font-semibold text-zinc-400 tracking-wide">Python 代码</span>
+          </div>
+          <button
+            onClick={handleExportCode}
+            className="p-1 rounded-md text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 transition-colors"
+            title="复制代码"
+          >
+            <Download size={12} />
+          </button>
         </div>
         <div className="flex-1 overflow-hidden">
           <Editor
@@ -101,11 +165,11 @@ export default function BlocklyEditor(): React.ReactElement {
             options={{
               readOnly: true,
               minimap: { enabled: false },
-              fontSize: 11,
+              fontSize: 12,
               lineNumbers: 'on',
               scrollBeyondLastLine: false,
               wordWrap: 'on',
-              padding: { top: 12 },
+              padding: { top: 16 },
               renderLineHighlight: 'none',
               overviewRulerBorder: false,
               scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
