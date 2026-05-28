@@ -11,14 +11,14 @@ export function ShapeBadge({ shape, hasError }: ShapeBadgeProps) {
 
   if (hasError) {
     return (
-      <span className="inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold text-red-600 bg-red-50 rounded border border-red-200">
+      <span className="inline-block px-2 py-0.5 text-[11px] font-mono font-bold text-red-600 bg-red-50 rounded border border-red-200">
         [{text}]
       </span>
     );
   }
 
   return (
-    <span className="inline-block px-1.5 py-0.5 text-[9px] font-mono text-zinc-500 bg-zinc-50 rounded border border-zinc-100">
+    <span className="inline-block px-2 py-0.5 text-[11px] font-mono text-zinc-500 bg-zinc-50 rounded border border-zinc-100">
       [{text}]
     </span>
   );

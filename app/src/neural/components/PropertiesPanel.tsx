@@ -34,22 +34,22 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
   if (!def) return null;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-5 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: def.color }} />
         <h3 className="text-sm font-bold text-zinc-700">{def.label}</h3>
-        <Badge variant="secondary" className="text-[9px]">{def.category}</Badge>
+        <Badge variant="secondary" className="text-[11px]">{def.category}</Badge>
       </div>
 
       {/* Parameters */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {Object.entries(def.params).map(([key, paramDef]) => {
           const value = params[key] ?? paramDef.default;
 
           return (
             <div key={key} className="space-y-1">
-              <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+              <Label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                 {paramDef.label}
               </Label>
 
@@ -69,7 +69,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     }}
                   />
                   {errors[key] && (
-                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
                   )}
                 </>
               )}
@@ -90,7 +90,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     }}
                   />
                   {errors[key] && (
-                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
                   )}
                 </>
               )}
@@ -103,7 +103,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     onChange={(e) => onParamChange(key, e.target.value)}
                   />
                   {errors[key] && (
-                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
                   )}
                 </>
               )}
@@ -120,7 +120,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     ))}
                   </select>
                   {errors[key] && (
-                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
                   )}
                 </>
               )}
@@ -137,13 +137,13 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     <span className="text-xs text-zinc-600">{(value as boolean) ? '是' : '否'}</span>
                   </label>
                   {errors[key] && (
-                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
                   )}
                 </>
               )}
 
               {(paramDef.min !== undefined || paramDef.max !== undefined) && (
-                <p className="text-[9px] text-zinc-400">
+                <p className="text-[11px] text-zinc-400">
                   {paramDef.min !== undefined && `最小: ${paramDef.min}`}
                   {paramDef.min !== undefined && paramDef.max !== undefined && ' · '}
                   {paramDef.max !== undefined && `最大: ${paramDef.max}`}
@@ -155,27 +155,27 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
       </div>
 
       {/* Port info */}
-      <div className="pt-3 border-t border-zinc-100 space-y-2">
-        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">端口</h4>
+      <div className="pt-3 border-t border-zinc-100/60 space-y-2">
+        <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">端口</h4>
         {def.inputs.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[10px] text-zinc-500 font-semibold">输入:</span>
+            <span className="text-[11px] text-zinc-500 font-semibold">输入:</span>
             {def.inputs.map((port) => (
               <div key={port.id} className="flex items-center gap-1.5 ml-2">
                 <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: def.color, background: '#fff' }} />
-                <span className="text-[10px] text-zinc-600">{port.label}</span>
-                {port.required && <span className="text-[9px] text-red-400">*</span>}
+                <span className="text-[11px] text-zinc-600">{port.label}</span>
+                {port.required && <span className="text-[11px] text-red-400">*</span>}
               </div>
             ))}
           </div>
         )}
         {def.outputs.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[10px] text-zinc-500 font-semibold">输出:</span>
+            <span className="text-[11px] text-zinc-500 font-semibold">输出:</span>
             {def.outputs.map((port) => (
               <div key={port.id} className="flex items-center gap-1.5 ml-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: def.color }} />
-                <span className="text-[10px] text-zinc-600">{port.label}</span>
+                <span className="text-[11px] text-zinc-600">{port.label}</span>
               </div>
             ))}
           </div>
