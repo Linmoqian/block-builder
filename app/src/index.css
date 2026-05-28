@@ -21,6 +21,13 @@
   --color-input: oklch(0.922 0 0);
   --color-ring: oklch(0.708 0 0);
 
+  /* 排版令牌 */
+  --font-size-caption: 0.6875rem;   /* 11px */
+  --font-size-label: 0.75rem;       /* 12px */
+  --font-size-body: 0.8125rem;      /* 13px */
+  --font-size-heading: 0.875rem;    /* 14px */
+  --font-size-display: 0.9375rem;   /* 15px */
+
   /* 统一圆角：3 级 + full */
   --radius-sm: 0.375rem;    /* 6px */
   --radius-md: 0.625rem;    /* 10px */
@@ -30,4 +37,58 @@
   --shadow-elevation-1: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-elevation-2: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
   --shadow-elevation-3: 0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* MiniMap 节点低饱和度 */
+.react-flow__minimap-node {
+  opacity: 0.6;
+}
+
+/* 画布背景：温暖灰调 */
+.react-flow__background {
+  background: #f5f5f4 !important;
+}
+
+/* 背景点更精致 */
+.react-flow__background-pattern dots {
+  fill: #d6d3d1 !important;
+}
+
+/* 画布区域去除默认白色 */
+.react-flow__pane {
+  cursor: default;
+}
+
+/* 连接线更精致 */
+.react-flow__edge-path {
+  stroke-width: 1.5;
+}
+
+/* 控制面板半透明 */
+.react-flow__controls {
+  background: rgba(255,255,255,0.7) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(0,0,0,0.04) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(0,0,0,0.04) !important;
+}
+
+/* MiniMap 半透明 */
+.react-flow__minimap {
+  background: rgba(255,255,255,0.6) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
 }
