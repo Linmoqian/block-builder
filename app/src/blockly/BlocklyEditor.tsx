@@ -22,7 +22,7 @@ import './generators/python';
 import './generators/training';
 import './generators/yolo';
 
-export function BlocklyEditor(): React.ReactElement {
+export default function BlocklyEditor(): React.ReactElement {
   const [code, setCode] = useState('');
   const [xml, setXml] = useState('');
   const workspaceRef = useRef<Workspace | null>(null);
