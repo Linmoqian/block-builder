@@ -18,7 +18,7 @@ const STATUS_VARIANT: Record<TrainStatus, 'outline' | 'secondary' | 'default' | 
 
 const STATUS_LABEL: Record<TrainStatus, string> = { idle: '就绪', running: '训练中', done: '已完成', error: '出错' };
 const STATUS_DOT: Record<TrainStatus, string> = {
-  idle: 'bg-gray-300', running: 'bg-blue-500 animate-pulse', done: 'bg-emerald-500', error: 'bg-red-500',
+  idle: 'bg-zinc-300', running: 'bg-blue-500 animate-pulse', done: 'bg-emerald-500', error: 'bg-red-500',
 };
 
 const DATASETS = [
@@ -170,11 +170,11 @@ export function TrainingPanel() {
     <div className="flex flex-col h-full">
       {/* Config section */}
       {status !== 'running' && (
-        <div className="p-3 space-y-2 border-b border-gray-100/50">
+        <div className="p-4 space-y-3 border-b border-zinc-100/50">
           <div>
-            <Label className="text-xs text-gray-500 font-medium">Model</Label>
+            <Label className="text-xs text-zinc-500 font-medium">Model</Label>
             <select value={model} onChange={(e) => setModel(e.target.value)}
-              className="w-full mt-0.5 py-1.5 px-2 text-xs font-medium text-gray-600 bg-gray-50/80 hover:bg-gray-100 border-gray-200 rounded-xl cursor-pointer">
+              className="w-full mt-0.5 py-1.5 px-2 text-xs font-medium text-zinc-600 bg-zinc-50/80 hover:bg-zinc-100 border-zinc-200 rounded-md cursor-pointer">
               {MODELS.map((g) => (
                 <optgroup key={g.group} label={g.group}>
                   {g.items.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -184,26 +184,26 @@ export function TrainingPanel() {
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <Label className="text-xs text-gray-500 font-medium">Epochs</Label>
+              <Label className="text-xs text-zinc-500 font-medium">Epochs</Label>
               <Input type="number" min={1} max={100} value={epochs}
                 onChange={(e) => setEpochs(Math.max(1, parseInt(e.target.value) || 1))} className="h-8 text-xs rounded-lg mt-0.5" />
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-gray-500 font-medium">Image Size</Label>
+              <Label className="text-xs text-zinc-500 font-medium">Image Size</Label>
               <Input type="number" min={32} max={640} step={32} value={imgsz}
                 onChange={(e) => setImgsz(Math.max(32, parseInt(e.target.value) || 128))} className="h-8 text-xs rounded-lg mt-0.5" />
             </div>
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <Label className="text-xs text-gray-500 font-medium">Dataset</Label>
+              <Label className="text-xs text-zinc-500 font-medium">Dataset</Label>
               <select value={dataset} onChange={(e) => setDataset(e.target.value)}
-                className="w-full mt-0.5 py-1.5 px-2 text-xs font-medium text-gray-600 bg-gray-50/80 hover:bg-gray-100 border-gray-200 rounded-xl cursor-pointer">
+                className="w-full mt-0.5 py-1.5 px-2 text-xs font-medium text-zinc-600 bg-zinc-50/80 hover:bg-zinc-100 border-zinc-200 rounded-md cursor-pointer">
                 {DATASETS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-gray-500 font-medium">Batch</Label>
+              <Label className="text-xs text-zinc-500 font-medium">Batch</Label>
               <Input type="number" min={1} max={128} value={batch}
                 onChange={(e) => setBatch(Math.max(1, parseInt(e.target.value) || 16))} className="h-8 text-xs rounded-lg mt-0.5" />
             </div>
@@ -211,20 +211,20 @@ export function TrainingPanel() {
 
           {/* Advanced toggle */}
           <button onClick={() => setShowAdvanced((v) => !v)}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+            className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
             {showAdvanced ? '收起高级参数' : '展开高级参数'}
           </button>
           {showAdvanced && (
             <div className="flex gap-2">
               <div className="flex-1">
-                <Label className="text-xs text-gray-500 font-medium">Learning Rate</Label>
+                <Label className="text-xs text-zinc-500 font-medium">Learning Rate</Label>
                 <Input type="number" min={0.0001} max={1} step={0.001} value={lr0}
                   onChange={(e) => setLr0(parseFloat(e.target.value) || 0.01)} className="h-8 text-xs rounded-lg mt-0.5" />
               </div>
               <div className="flex-1">
-                <Label className="text-xs text-gray-500 font-medium">Optimizer</Label>
+                <Label className="text-xs text-zinc-500 font-medium">Optimizer</Label>
                 <select value={optimizer} onChange={(e) => setOptimizer(e.target.value)}
-                  className="w-full mt-0.5 py-1.5 px-2 text-xs font-medium text-gray-600 bg-gray-50/80 hover:bg-gray-100 border-gray-200 rounded-xl cursor-pointer">
+                  className="w-full mt-0.5 py-1.5 px-2 text-xs font-medium text-zinc-600 bg-zinc-50/80 hover:bg-zinc-100 border-zinc-200 rounded-md cursor-pointer">
                   {OPTIMIZERS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -234,15 +234,15 @@ export function TrainingPanel() {
       )}
 
       {/* Controls */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100/50">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-zinc-100/50">
         {status !== 'running' ? (
           <Button size="sm" onClick={startTraining}
-            className="bg-[#007AFF] hover:bg-[#0066DD] text-white text-xs font-semibold rounded-xl">
+            className="bg-[#007AFF] hover:bg-[#0066DD] text-white text-xs font-semibold rounded-md">
             开始训练
           </Button>
         ) : (
           <Button size="sm" variant="outline" onClick={stopTraining}
-            className="text-red-600 border-red-200 hover:bg-red-50 text-xs font-semibold rounded-xl">
+            className="text-red-600 border-red-200 hover:bg-red-50 text-xs font-semibold rounded-md">
             停止
           </Button>
         )}
@@ -252,7 +252,7 @@ export function TrainingPanel() {
         </Badge>
         {status === 'done' && (
           <Button size="sm" variant="outline" onClick={runInference} disabled={inferencing}
-            className="ml-auto text-xs font-semibold rounded-xl">
+            className="ml-auto text-xs font-semibold rounded-md">
             {inferencing ? '验证中...' : '推理验证'}
           </Button>
         )}
@@ -260,7 +260,7 @@ export function TrainingPanel() {
 
       {/* Inference result */}
       {inferenceLog && (
-        <div className="bg-purple-50/80 rounded-xl mx-3 my-1 px-3 py-1.5 border-b border-gray-100/50">
+        <div className="bg-purple-50/80 rounded-md mx-3 my-1 px-3 py-1.5 border-b border-zinc-100/50">
           <p className="text-xs text-purple-700 font-medium">推理验证</p>
           <pre className="text-xs text-purple-600 whitespace-pre-wrap mt-0.5 max-h-24 overflow-y-auto">{inferenceLog}</pre>
         </div>
@@ -268,15 +268,15 @@ export function TrainingPanel() {
 
       {/* History */}
       {history.length > 0 && status !== 'running' && (
-        <div className="px-3 py-1.5 border-b border-gray-100/50">
-          <p className="text-xs text-gray-500 font-medium mb-1">训练历史 ({history.length})</p>
+        <div className="px-3 py-1.5 border-b border-zinc-100/50">
+          <p className="text-xs text-zinc-500 font-medium mb-1">训练历史 ({history.length})</p>
           <div className="max-h-20 overflow-y-auto space-y-0.5">
             {history.slice(0, 5).map((run) => (
               <div key={run.name} className="flex items-center gap-1.5 text-xs">
-                <span className={`inline-block w-1.5 h-1.5 rounded-full ${run.has_weights ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-                <span className="text-gray-600 font-medium">{run.name}</span>
-                {run.model && <span className="text-gray-400">{run.model.replace('.yaml', '')}</span>}
-                {run.epochs && <span className="text-gray-400">{run.epochs}ep</span>}
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${run.has_weights ? 'bg-emerald-400' : 'bg-zinc-300'}`} />
+                <span className="text-zinc-600 font-medium">{run.name}</span>
+                {run.model && <span className="text-zinc-400">{run.model.replace('.yaml', '')}</span>}
+                {run.epochs && <span className="text-zinc-400">{run.epochs}ep</span>}
               </div>
             ))}
           </div>

@@ -92,7 +92,7 @@ function MetricCard({ label, value, color, prev }: {
   const diff = prev != null ? value - prev : undefined;
   return (
     <div className="flex-1 bg-white/5 rounded-lg px-2.5 py-2 border border-white/5">
-      <div className="text-[10px] text-gray-400 font-medium mb-0.5">{label}</div>
+      <div className="text-xs text-zinc-400 font-medium mb-0.5">{label}</div>
       <div className={`text-sm font-semibold ${color}`}>
         <AnimNum value={value} />
       </div>
@@ -100,7 +100,7 @@ function MetricCard({ label, value, color, prev }: {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className={`text-[10px] mt-0.5 ${diff <= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+          className={`text-xs mt-0.5 ${diff <= 0 ? 'text-emerald-400' : 'text-red-400'}`}
         >
           {diff <= 0 ? '↓' : '↑'} {Math.abs(diff).toFixed(4)}
         </motion.div>
@@ -170,7 +170,7 @@ function ResultsSummary({ log }: { log: string }) {
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
         训练完成
       </div>
-      <div className="text-[11px] text-gray-400 space-y-0.5">
+      <div className="text-xs text-zinc-400 space-y-0.5">
         {params && <p>{params} 参数{duration ? ` · ${duration}` : ''}</p>}
         {savePath && <p className="truncate" title={savePath}>{savePath}</p>}
       </div>
@@ -185,14 +185,14 @@ function ResultsSummary({ log }: { log: string }) {
 function IdlePlaceholder() {
   return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="text-center text-gray-500">
+      <div className="text-center text-zinc-500">
         <div className="text-2xl mb-2 opacity-30">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
             <path d="M12 6V18M6 12H18" strokeLinecap="round" />
           </svg>
         </div>
         <p className="text-xs">配置训练参数后点击「开始训练」</p>
-        <p className="text-[10px] mt-0.5 text-gray-600">训练过程将在此处实时可视化展示</p>
+        <p className="text-xs mt-0.5 text-zinc-600">训练过程将在此处实时可视化展示</p>
       </div>
     </div>
   );
@@ -211,7 +211,7 @@ function RawLogSection({ log }: { log: string }) {
     <div className="border-t border-white/5">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] text-gray-500 hover:text-gray-300 transition-colors"
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
       >
         <motion.span
           animate={{ rotate: open ? 90 : 0 }}
@@ -231,7 +231,7 @@ function RawLogSection({ log }: { log: string }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <pre className="px-3 pb-2 text-[10px] text-gray-500 font-mono whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+            <pre className="px-3 pb-2 text-xs text-zinc-500 font-mono whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
               {clean}
             </pre>
           </motion.div>
@@ -265,7 +265,7 @@ export function TrainDashboard({ status, log, lossHistory, totalEpochs }: TrainD
         <div className="flex items-start gap-3">
           <ProgressRing current={current} total={totalEpochs} />
           <div className="flex-1 space-y-1">
-            <div className="text-xs text-gray-400 font-medium">
+            <div className="text-xs text-zinc-400 font-medium">
               Epoch <span className="text-white font-bold">{current}</span> / {totalEpochs}
             </div>
             <div className="flex gap-1.5">
@@ -304,7 +304,7 @@ export function TrainDashboard({ status, log, lossHistory, totalEpochs }: TrainD
       {/* Running but no data yet */}
       {status === 'running' && !latest && (
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             等待训练数据...
           </div>
