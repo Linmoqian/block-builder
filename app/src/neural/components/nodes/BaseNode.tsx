@@ -24,22 +24,22 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-md border-2 ${borderColor} min-w-[140px] transition-colors`}
+      className={`bg-white rounded-md shadow-elevation-1 border ${borderColor} min-w-[160px] transition-all duration-200`}
     >
       {/* Header */}
       <div
-        className="px-3 py-2 rounded-t-[10px] flex items-center gap-2"
+        className="px-3 py-2 rounded-t-md flex items-center gap-2"
         style={{ backgroundColor: def.color + '18' }}
       >
         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: def.color }} />
         <span className="text-xs font-bold text-zinc-700">{def.label}</span>
         {hasError && (
-          <span className="ml-auto text-red-500 text-[10px] font-bold">错误</span>
+          <span className="ml-auto text-red-500 text-[11px] font-bold">错误</span>
         )}
       </div>
 
       {/* Body: shape info */}
-      <div className="px-3 py-1.5 text-[10px] text-zinc-500 font-mono">
+      <div className="px-3 py-1.5 text-[11px] text-zinc-500 font-mono">
         {inferredShape && inferredShape[0] !== 0 ? (
           <span className={hasError ? 'text-red-500' : 'text-zinc-600'}>
             [{(inferredShape as number[]).join(', ')}]
@@ -51,7 +51,7 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
 
       {/* Error message */}
       {hasError && errorMessage && (
-        <div className="px-3 py-1 text-[9px] text-red-500 bg-red-50 border-t border-red-100 rounded-b-[10px]">
+        <div className="px-3 py-1 text-[11px] text-red-500 bg-red-50 border-t border-red-100 rounded-b-md">
           {errorMessage}
         </div>
       )}
