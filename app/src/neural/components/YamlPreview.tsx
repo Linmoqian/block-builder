@@ -17,14 +17,14 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
   };
 
   return (
-    <Card className="flex flex-col h-full bg-zinc-900 border-zinc-700 rounded-none">
-      <CardHeader className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700 space-y-0">
-        <CardTitle className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">YOLO YAML</CardTitle>
+    <Card className="flex flex-col h-full bg-zinc-950">
+      <CardHeader className="flex items-center justify-between px-4 py-2.5 bg-zinc-900 border-b border-zinc-800 space-y-0">
+        <CardTitle className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">YOLO YAML</CardTitle>
         <Button
           variant="secondary"
           size="sm"
           onClick={handleCopy}
-          className="px-2 py-1 text-[10px] font-semibold text-zinc-300 hover:text-white bg-zinc-700 hover:bg-zinc-600"
+          className="px-2 py-1 text-[11px] font-semibold text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700"
         >
           {copied ? '已复制' : '复制'}
         </Button>
@@ -38,11 +38,11 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
           options={{
             readOnly: true,
             minimap: { enabled: false },
-            fontSize: 11,
+            fontSize: 12,
             lineNumbers: 'on',
             scrollBeyondLastLine: false,
             wordWrap: 'on',
-            padding: { top: 12 },
+            padding: { top: 16 },
             renderLineHighlight: 'none',
             overviewRulerBorder: false,
             scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },

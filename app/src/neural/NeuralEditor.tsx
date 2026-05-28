@@ -443,7 +443,7 @@ function NeuralEditorInner() {
           <Controls />
           <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
           <Panel position="top-center">
-            <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
+            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
               拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+S 保存
             </div>
           </Panel>
@@ -451,7 +451,7 @@ function NeuralEditorInner() {
             <ErrorPanel errors={validationErrors} nodes={nodes} onNavigate={handleNavigate} />
           </Panel>
           <Panel position="bottom-right">
-            <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-full shadow-lg text-[10px] text-zinc-400 font-medium">
+            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-3 py-1.5 rounded-full shadow-lg text-[11px] text-zinc-400 font-medium">
               {formatParams(modelStats.totalParams)} 参数 · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
             </div>
           </Panel>
