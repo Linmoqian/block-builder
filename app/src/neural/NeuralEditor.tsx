@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect, createContext, useContext, useMemo } from 'react';
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -13,10 +13,7 @@ import '@xyflow/react/dist/style.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { save as tauriSave, open as tauriOpen } from '@tauri-apps/plugin-dialog';
-import { useGraphState, RFNode } from './hooks/useGraphState';
-import { useGraphPersistence } from './hooks/useGraphPersistence';
-import { useShapeInference } from './hooks/useShapeInference';
-import { useGraphHistory } from './hooks/useGraphHistory';
+import { useGraphStore, RFNode } from './store/graphStore';
 import { ModulePalette } from './components/ModulePalette';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { YamlPreview } from './components/YamlPreview';
@@ -29,15 +26,13 @@ import { exportPyTorch } from './graph/pytorchExport';
 import { importYaml } from './graph/yamlImport';
 import { autoLayout } from './graph/autoLayout';
 import { PRESETS } from './graph/presets';
-import { TensorShape, ParamValue, InferredShape } from './graph/types';
+import { ParamValue } from './graph/types';
 import { computeModelStats, formatParams, formatFLOPs } from './graph/modelStats';
 
 const isTauri = '__TAURI_INTERNALS__' in window;
 
-const ShapeContext = createContext<Map<string, InferredShape>>(new Map());
-
 function NeuralNode({ id, data, selected }: { id: string; data: { type: string; params: Record<string, ParamValue> }; selected?: boolean }) {
-  const shapeMap = useContext(ShapeContext);
+  const shapeMap = useGraphStore((s) => s.shapeMap);
   const inferred = shapeMap.get(id);
 
   return (
@@ -54,65 +49,65 @@ function NeuralNode({ id, data, selected }: { id: string; data: { type: string; 
 
 const nodeTypes = { neural: NeuralNode };
 
-type RightTab = 'properties' | 'yaml';
-
 function NeuralEditorInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
-  const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
-  const [rightTab, setRightTab] = useState<RightTab>('properties');
-  const pendingFitView = useRef(false);
 
-  const {
-    nodes,
-    edges,
-    onNodesChange,
-    onEdgesChange,
-    addNode,
-    deleteNode,
-    updateNodeParams,
-    onConnect,
-    clearGraph,
-    getGraphIR,
-    loadGraphIR,
-  } = useGraphState();
+  // Store selectors
+  const nodes = useGraphStore((s) => s.nodes);
+  const edges = useGraphStore((s) => s.edges);
+  const onNodesChange = useGraphStore((s) => s.onNodesChange);
+  const onEdgesChange = useGraphStore((s) => s.onEdgesChange);
+  const addNode = useGraphStore((s) => s.addNode);
+  const deleteNode = useGraphStore((s) => s.deleteNode);
+  const updateNodeParams = useGraphStore((s) => s.updateNodeParams);
+  const onConnect = useGraphStore((s) => s.onConnect);
+  const clearGraph = useGraphStore((s) => s.clearGraph);
+  const getGraphIR = useGraphStore((s) => s.getGraphIR);
+  const loadGraphIR = useGraphStore((s) => s.loadGraphIR);
+  const pushSnapshot = useGraphStore((s) => s.pushSnapshot);
+  const undo = useGraphStore((s) => s.undo);
+  const redo = useGraphStore((s) => s.redo);
+  const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
+  const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
+  const rightTab = useGraphStore((s) => s.rightTab);
+  const setRightTab = useGraphStore((s) => s.setRightTab);
+  const consumeFitView = useGraphStore((s) => s.consumeFitView);
+  const requestFitView = useGraphStore((s) => s.requestFitView);
+  const shapeMap = useGraphStore((s) => s.shapeMap);
+  const validationErrors = useGraphStore((s) => s.validationErrors);
 
-  const { save } = useGraphPersistence(getGraphIR, loadGraphIR);
-  const { shapeMap, validationErrors } = useShapeInference(nodes, edges);
-  const { pushSnapshot, undo, redo, canUndo, canRedo } = useGraphHistory();
+  // Derive selectedNode from store
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedNodeId) ?? null,
+    [nodes, selectedNodeId]
+  );
 
   // Push snapshot on graph changes
   useEffect(() => {
     pushSnapshot(nodes, edges);
   }, [nodes, edges, pushSnapshot]);
 
-  // Track selected node
+  // Track selected node from React Flow selection
   useEffect(() => {
-    const selected = nodes.find((n) => n.selected) || null;
-    setSelectedNode(selected);
-  }, [nodes]);
+    const selected = nodes.find((n) => n.selected);
+    if (selected) setSelectedNodeId(selected.id);
+  }, [nodes, setSelectedNodeId]);
 
-  // Fit view after loading graph (preset/import/layout)
+  // Fit view after loading graph
   useEffect(() => {
-    if (pendingFitView.current && nodes.length > 0) {
-      pendingFitView.current = false;
+    if (consumeFitView() && nodes.length > 0) {
       requestAnimationFrame(() => {
         fitView({ padding: 0.2, duration: 300 });
       });
     }
-  }, [nodes, fitView]);
-
-  // Auto-save on graph changes
-  useEffect(() => {
-    save();
-  }, [nodes, edges, save]);
+  }, [nodes, fitView, consumeFitView, requestFitView]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.ctrlKey || e.metaKey;
 
-      // Undo/Redo: always intercept, blur focused input first
       const isUndo = isMod && e.key === 'z' && !e.shiftKey;
       const isRedo = (isMod && e.key === 'z' && e.shiftKey) || (isMod && e.key === 'y');
       if (isUndo || isRedo) {
@@ -126,18 +121,15 @@ function NeuralEditorInner() {
         return;
       }
 
-      // Skip other shortcuts if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
         return;
       }
 
-      // Ctrl+S / Cmd+S = Save JSON
       if (isMod && e.key === 's') {
         e.preventDefault();
         downloadJson(getGraphIR());
       }
 
-      // Ctrl+E / Cmd+E = Export YAML
       if (isMod && e.key === 'e') {
         e.preventDefault();
         handleExportYaml();
@@ -180,23 +172,23 @@ function NeuralEditorInner() {
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      setSelectedNode(node as RFNode);
+      setSelectedNodeId(node.id);
       setRightTab('properties');
     },
-    []
+    [setSelectedNodeId, setRightTab]
   );
 
   const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
-  }, []);
+    setSelectedNodeId(null);
+  }, [setSelectedNodeId]);
 
   const handleParamChange = useCallback(
     (key: string, value: ParamValue) => {
-      if (selectedNode) {
-        updateNodeParams(selectedNode.id, { [key]: value });
+      if (selectedNodeId) {
+        updateNodeParams(selectedNodeId, { [key]: value });
       }
     },
-    [selectedNode, updateNodeParams]
+    [selectedNodeId, updateNodeParams]
   );
 
   const handleSaveJson = useCallback(async () => {
@@ -220,17 +212,17 @@ function NeuralEditorInner() {
           const json = await invoke('read_text_file', { path }) as string;
           const { importGraphIR } = await import('./graph/jsonIO');
           loadGraphIR(importGraphIR(json));
-          pendingFitView.current = true;
+          requestFitView();
         }
       } else {
         const graph = await uploadJson();
         loadGraphIR(graph);
-        pendingFitView.current = true;
+        requestFitView();
       }
     } catch (e) {
       console.error('Failed to load graph:', e);
     }
-  }, [loadGraphIR]);
+  }, [loadGraphIR, requestFitView]);
 
   const handleExportYaml = useCallback(async () => {
     const yaml = exportYaml(getGraphIR());
@@ -281,7 +273,7 @@ function NeuralEditorInner() {
           const graph = importYaml(text);
           const laid = autoLayout(graph);
           loadGraphIR(laid);
-          pendingFitView.current = true;
+          requestFitView();
         }
       } else {
         const input = document.createElement('input');
@@ -294,30 +286,30 @@ function NeuralEditorInner() {
           const graph = importYaml(text);
           const laid = autoLayout(graph);
           loadGraphIR(laid);
-          pendingFitView.current = true;
+          requestFitView();
         };
         input.click();
       }
     } catch (e) {
       console.error('Failed to import YAML:', e);
     }
-  }, [loadGraphIR]);
+  }, [loadGraphIR, requestFitView]);
 
   const handleLoadPreset = useCallback((presetKey: string) => {
     const preset = PRESETS[presetKey];
     if (preset) {
       const laid = autoLayout(preset.graph);
       loadGraphIR(laid);
-      pendingFitView.current = true;
+      requestFitView();
     }
-  }, [loadGraphIR]);
+  }, [loadGraphIR, requestFitView]);
 
   const handleAutoLayout = useCallback(() => {
     const graph = getGraphIR();
     const laid = autoLayout(graph);
     loadGraphIR(laid);
-    pendingFitView.current = true;
-  }, [getGraphIR, loadGraphIR]);
+    requestFitView();
+  }, [getGraphIR, loadGraphIR, requestFitView]);
 
   // Tauri 原生菜单事件
   useEffect(() => {
@@ -414,96 +406,94 @@ function NeuralEditorInner() {
   );
 
   return (
-    <ShapeContext.Provider value={shapeMap}>
-      <div className="flex flex-1 min-h-0">
-        {/* Left sidebar */}
-        <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col shrink-0">
-          <div className="px-4 py-3 border-b border-zinc-100">
-            <h2 className="text-sm font-bold text-zinc-700">模块</h2>
-            <p className="text-[10px] text-zinc-400 mt-0.5">拖拽到画布</p>
-          </div>
-          <ModulePalette />
-          <div className="px-4 py-3 border-t border-zinc-100 space-y-2">
-            <div className="flex gap-2">
-              <button onClick={handleSaveJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">保存</button>
-              <button onClick={handleLoadJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">加载</button>
-            </div>
-            <button onClick={handleImportYaml} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">导入 YAML</button>
-            <select onChange={(e) => e.target.value && handleLoadPreset(e.target.value)} defaultValue="" className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer">
-              <option value="" disabled>加载预设...</option>
-              {Object.entries(PRESETS).map(([key, preset]) => (<option key={key} value={key}>{preset.label}</option>))}
-            </select>
-            <button onClick={handleAutoLayout} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">重新布局</button>
-            <div className="flex gap-2">
-              <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">导出 YAML</button>
-              <button onClick={handleExportPyTorch} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">PyTorch</button>
-            </div>
-            <button onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">清空画布</button>
-          </div>
-        </aside>
-
-        {/* Canvas */}
-        <div ref={reactFlowWrapper} className="flex-1 min-w-0">
-          <ReactFlow
-            nodes={nodes}
-            edges={styledEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            onDelete={onDelete}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
-            nodeTypes={nodeTypes}
-            fitView
-            snapToGrid
-            snapGrid={[16, 16]}
-            defaultEdgeOptions={{ animated: true }}
-          >
-            <Background gap={16} size={1} />
-            <Controls />
-            <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
-            <Panel position="top-center">
-              <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
-                拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+S 保存
-              </div>
-            </Panel>
-            <Panel position="bottom-left">
-              <ErrorPanel errors={validationErrors} nodes={nodes} onNavigate={handleNavigate} />
-            </Panel>
-            <Panel position="bottom-right">
-              <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-full shadow-lg text-[10px] text-zinc-400 font-medium">
-                {formatParams(modelStats.totalParams)} 参数 · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
-              </div>
-            </Panel>
-          </ReactFlow>
+    <div className="flex flex-1 min-h-0">
+      {/* Left sidebar */}
+      <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col shrink-0">
+        <div className="px-4 py-3 border-b border-zinc-100">
+          <h2 className="text-sm font-bold text-zinc-700">模块</h2>
+          <p className="text-[10px] text-zinc-400 mt-0.5">拖拽到画布</p>
         </div>
-
-        {/* Right sidebar */}
-        <aside className="w-80 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
-          <div className="flex border-b border-zinc-200">
-            <button onClick={() => setRightTab('properties')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'properties' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>属性</button>
-            <button onClick={() => setRightTab('yaml')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'yaml' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>YAML</button>
+        <ModulePalette />
+        <div className="px-4 py-3 border-t border-zinc-100 space-y-2">
+          <div className="flex gap-2">
+            <button onClick={handleSaveJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">保存</button>
+            <button onClick={handleLoadJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">加载</button>
           </div>
-          {rightTab === 'properties' ? (
-            selectedNode ? (
-              <div className="flex-1 overflow-y-auto">
-                <PropertiesPanel nodeType={selectedNode.data.type} params={selectedNode.data.params} onParamChange={handleParamChange} />
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center p-4">
-                <p className="text-xs text-zinc-400 text-center">点击节点编辑参数</p>
-              </div>
-            )
-          ) : (
-            <div className="flex-1 overflow-hidden">
-              <YamlPreview yaml={yamlContent} />
+          <button onClick={handleImportYaml} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">导入 YAML</button>
+          <select onChange={(e) => e.target.value && handleLoadPreset(e.target.value)} defaultValue="" className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer">
+            <option value="" disabled>加载预设...</option>
+            {Object.entries(PRESETS).map(([key, preset]) => (<option key={key} value={key}>{preset.label}</option>))}
+          </select>
+          <button onClick={handleAutoLayout} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">重新布局</button>
+          <div className="flex gap-2">
+            <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">导出 YAML</button>
+            <button onClick={handleExportPyTorch} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">PyTorch</button>
+          </div>
+          <button onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">清空画布</button>
+        </div>
+      </aside>
+
+      {/* Canvas */}
+      <div ref={reactFlowWrapper} className="flex-1 min-w-0">
+        <ReactFlow
+          nodes={nodes}
+          edges={styledEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onDelete={onDelete}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          nodeTypes={nodeTypes}
+          fitView
+          snapToGrid
+          snapGrid={[16, 16]}
+          defaultEdgeOptions={{ animated: true }}
+        >
+          <Background gap={16} size={1} />
+          <Controls />
+          <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
+          <Panel position="top-center">
+            <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
+              拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+S 保存
             </div>
-          )}
-        </aside>
+          </Panel>
+          <Panel position="bottom-left">
+            <ErrorPanel errors={validationErrors} nodes={nodes} onNavigate={handleNavigate} />
+          </Panel>
+          <Panel position="bottom-right">
+            <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-full shadow-lg text-[10px] text-zinc-400 font-medium">
+              {formatParams(modelStats.totalParams)} 参数 · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
+            </div>
+          </Panel>
+        </ReactFlow>
       </div>
-    </ShapeContext.Provider>
+
+      {/* Right sidebar */}
+      <aside className="w-80 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
+        <div className="flex border-b border-zinc-200">
+          <button onClick={() => setRightTab('properties')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'properties' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>属性</button>
+          <button onClick={() => setRightTab('yaml')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'yaml' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>YAML</button>
+        </div>
+        {rightTab === 'properties' ? (
+          selectedNode ? (
+            <div className="flex-1 overflow-y-auto">
+              <PropertiesPanel nodeType={selectedNode.data.type} params={selectedNode.data.params} onParamChange={handleParamChange} />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <p className="text-xs text-zinc-400 text-center">点击节点编辑参数</p>
+            </div>
+          )
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <YamlPreview yaml={yamlContent} />
+          </div>
+        )}
+      </aside>
+    </div>
   );
 }
 
