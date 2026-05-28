@@ -1,4 +1,7 @@
 import React from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { MODULE_REGISTRY } from '../graph/registry';
 import { ParamValue } from '../graph/types';
 
@@ -18,7 +21,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
       <div className="flex items-center gap-2">
         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: def.color }} />
         <h3 className="text-sm font-bold text-zinc-700">{def.label}</h3>
-        <span className="text-[10px] text-zinc-400 uppercase tracking-wider">{def.category}</span>
+        <Badge variant="secondary" className="text-[9px]">{def.category}</Badge>
       </div>
 
       {/* Parameters */}
@@ -28,12 +31,12 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
 
           return (
             <div key={key} className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+              <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                 {paramDef.label}
-              </label>
+              </Label>
 
               {paramDef.type === 'int' && (
-                <input
+                <Input
                   type="number"
                   step={1}
                   min={paramDef.min}
@@ -45,12 +48,11 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
                     onParamChange(key, v);
                   }}
-                  className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
                 />
               )}
 
               {paramDef.type === 'float' && (
-                <input
+                <Input
                   type="number"
                   step={0.1}
                   min={paramDef.min}
@@ -62,16 +64,14 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
                     onParamChange(key, v);
                   }}
-                  className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
                 />
               )}
 
               {paramDef.type === 'string' && (
-                <input
+                <Input
                   type="text"
                   value={value as string}
                   onChange={(e) => onParamChange(key, e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
                 />
               )}
 
@@ -79,7 +79,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                 <select
                   value={value as string}
                   onChange={(e) => onParamChange(key, e.target.value)}
-                  className="w-full px-3 py-1.5 text-sm bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                   {paramDef.options?.map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
