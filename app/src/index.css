@@ -92,3 +92,19 @@
   border-radius: 10px !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
 }
+
+/* Blockly toolbox 隐藏滚动条 */
+.blocklyToolbox {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+}
+
+.blocklyToolbox::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Blockly 主注入区域防止溢出 */
+.blocklyInjectionDiv {
+  overflow: hidden !important;
+}

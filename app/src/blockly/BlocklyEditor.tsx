@@ -11,6 +11,7 @@ import Editor from '@monaco-editor/react';
 import 'blockly/blocks';
 import { Code2, Play, Download, Box } from 'lucide-react';
 import { motion } from 'motion/react';
+import { ResizeHandle } from '../neural/components/ResizeHandle';
 
 import { toolboxConfig } from './toolbox';
 import { YOLO_PRESETS } from './presets';
@@ -27,6 +28,7 @@ import './generators/yolo';
 export default function BlocklyEditor(): React.ReactElement {
   const [code, setCode] = useState('');
   const [xml, setXml] = useState('');
+  const [panelWidth, setPanelWidth] = useState(384);
   const workspaceRef = useRef<Workspace | null>(null);
 
   const handleWorkspaceChange = useCallback((workspace: Workspace) => {
@@ -79,10 +81,14 @@ export default function BlocklyEditor(): React.ReactElement {
     };
   };
 
+  const handlePanelResize = useCallback((delta: number) => {
+    setPanelWidth((w) => Math.min(600, Math.max(240, w + delta)));
+  }, []);
+
   return (
-    <div className="flex flex-1 min-h-0">
+    <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Left: Blockly canvas */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Toolbar */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -124,7 +130,7 @@ export default function BlocklyEditor(): React.ReactElement {
         </motion.div>
 
         {/* Blockly workspace */}
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <BlocklyWorkspace
             className="h-full w-full"
             toolboxConfiguration={toolboxConfig}
@@ -140,8 +146,10 @@ export default function BlocklyEditor(): React.ReactElement {
         </div>
       </div>
 
+      <ResizeHandle side="right" onResize={handlePanelResize} />
+
       {/* Right: Code preview */}
-      <aside className="w-96 bg-zinc-950 flex flex-col shrink-0 overflow-hidden">
+      <aside className="bg-zinc-950 flex flex-col shrink-0 overflow-hidden" style={{ width: panelWidth }}>
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/60">
           <div className="flex items-center gap-2">
             <Code2 size={13} className="text-zinc-500" />
