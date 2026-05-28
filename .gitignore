@@ -10,4 +10,22 @@ __pycache__/
 CLAUDE.md
 AGENTS.md
 .claude/
+
 src-tauri/target/
+
+# Vite
+.vite/
+
+# Playwright
+.playwright-cli/
+
+# Python 运行产物
+app/TmpSrc/
+app/runs/
+
+# 外部项目
+aily-blockly/
+
+# 生成文档
+docs/superpowers/
+edu-visual-programming.html
