@@ -38,6 +38,8 @@
     "react-blockly": "^9.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.76.1",
+    "react-is": "^19.2.6",
+    "recharts": "^3.8.1",
     "tailwind-merge": "^3.6.0",
     "vite": "^6.2.0",
     "zod": "^4.4.3",

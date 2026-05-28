@@ -14,7 +14,7 @@ type RFNodeData = { type: string; params: Record<string, ParamValue> };
 export type RFNode = Node<RFNodeData>;
 export type RFEdge = Edge;
 
-export type RightTab = 'properties' | 'yaml';
+export type RightTab = 'properties' | 'yaml' | 'training';
 
 interface Snapshot {
   nodes: RFNode[];
