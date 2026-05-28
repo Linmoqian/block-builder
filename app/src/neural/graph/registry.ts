@@ -38,16 +38,16 @@ export const MODULE_REGISTRY = new ModuleRegistry();
 // 注册所有模块
 MODULE_REGISTRY.register({
   type: 'Input',
-  label: 'Input',
+  label: '输入',
   category: 'input',
   color: '#10b981',
   params: {
-    channels: { type: 'int', default: 3, min: 1, max: 256, label: 'Channels' },
-    height: { type: 'int', default: 640, min: 32, max: 4096, label: 'Height' },
-    width: { type: 'int', default: 640, min: 32, max: 4096, label: 'Width' },
+    channels: { type: 'int', default: 3, min: 1, max: 256, label: '通道数' },
+    height: { type: 'int', default: 640, min: 32, max: 4096, label: '高度' },
+    width: { type: 'int', default: 640, min: 32, max: 4096, label: '宽度' },
   },
   inputs: [],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (_inputs, params) => {
     return [[params.channels as number, params.height as number, params.width as number]];
   },
@@ -55,16 +55,16 @@ MODULE_REGISTRY.register({
 
 MODULE_REGISTRY.register({
   type: 'Conv',
-  label: 'Conv',
+  label: '卷积',
   category: 'basic',
   color: '#3b82f6',
   params: {
-    out_channels: { type: 'int', default: 64, min: 1, max: 2048, label: 'Out Channels' },
-    kernel_size: { type: 'int', default: 3, min: 1, max: 11, label: 'Kernel Size' },
-    stride: { type: 'int', default: 1, min: 1, max: 4, label: 'Stride' },
+    out_channels: { type: 'int', default: 64, min: 1, max: 2048, label: '输出通道' },
+    kernel_size: { type: 'int', default: 3, min: 1, max: 11, label: '卷积核大小' },
+    stride: { type: 'int', default: 1, min: 1, max: 4, label: '步长' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0, 0, 0]];
     const [, h, w] = inputs[0];
@@ -101,11 +101,11 @@ MODULE_REGISTRY.register({
   category: 'composite',
   color: '#8b5cf6',
   params: {
-    out_channels: { type: 'int', default: 128, min: 1, max: 2048, label: 'Out Channels' },
-    n: { type: 'int', default: 3, min: 1, max: 8, label: 'Bottleneck Count' },
+    out_channels: { type: 'int', default: 128, min: 1, max: 2048, label: '输出通道' },
+    n: { type: 'int', default: 3, min: 1, max: 8, label: '瓶颈层数' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0, 0, 0]];
     const [, h, w] = inputs[0];
@@ -134,11 +134,11 @@ MODULE_REGISTRY.register({
   category: 'composite',
   color: '#f59e0b',
   params: {
-    out_channels: { type: 'int', default: 256, min: 1, max: 2048, label: 'Out Channels' },
-    kernel_size: { type: 'int', default: 5, min: 3, max: 11, label: 'Pool Kernel' },
+    out_channels: { type: 'int', default: 256, min: 1, max: 2048, label: '输出通道' },
+    kernel_size: { type: 'int', default: 5, min: 3, max: 11, label: '池化核大小' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0, 0, 0]];
     const [, h, w] = inputs[0];
@@ -167,11 +167,11 @@ MODULE_REGISTRY.register({
   category: 'basic',
   color: '#06b6d4',
   params: {
-    scale_factor: { type: 'float', default: 2.0, min: 0.5, max: 8.0, label: 'Scale Factor' },
-    mode: { type: 'select', default: 'nearest', options: ['nearest', 'bilinear'], label: 'Mode' },
+    scale_factor: { type: 'float', default: 2.0, min: 0.5, max: 8.0, label: '缩放因子' },
+    mode: { type: 'select', default: 'nearest', options: ['nearest', 'bilinear'], label: '模式' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0, 0, 0]];
     const [c, h, w] = inputs[0];
@@ -186,13 +186,13 @@ MODULE_REGISTRY.register({
   category: 'connector',
   color: '#ec4899',
   params: {
-    axis: { type: 'int', default: 0, min: 0, max: 2, label: 'Axis' },
+    axis: { type: 'int', default: 0, min: 0, max: 2, label: '拼接轴' },
   },
   inputs: [
-    { id: 'in_0', label: 'Input A', required: true },
-    { id: 'in_1', label: 'Input B', required: true },
+    { id: 'in_0', label: '输入 A', required: true },
+    { id: 'in_1', label: '输入 B', required: true },
   ],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0] || !inputs[1]) return [[0, 0, 0]];
     const axis = params.axis as number;
@@ -215,10 +215,10 @@ MODULE_REGISTRY.register({
   category: 'attention',
   color: '#f97316',
   params: {
-    reduction: { type: 'int', default: 16, min: 1, max: 64, label: 'Reduction' },
+    reduction: { type: 'int', default: 16, min: 1, max: 64, label: '缩减比' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
 });
 
@@ -228,7 +228,7 @@ MODULE_REGISTRY.register({
   category: 'head',
   color: '#ef4444',
   params: {
-    num_classes: { type: 'int', default: 80, min: 1, max: 1000, label: 'Num Classes' },
+    num_classes: { type: 'int', default: 80, min: 1, max: 1000, label: '类别数' },
   },
   inputs: [
     { id: 'p3', label: 'P3 (80x80)', required: true },
@@ -245,15 +245,15 @@ MODULE_REGISTRY.register({
 
 MODULE_REGISTRY.register({
   type: 'BatchNorm2d',
-  label: 'BatchNorm2d',
+  label: '批量归一化',
   category: 'basic',
   color: '#14b8a6',
   params: {
     eps: { type: 'float', default: 1e-5, min: 1e-10, max: 1, label: 'Epsilon' },
-    momentum: { type: 'float', default: 0.1, min: 0, max: 1, label: 'Momentum' },
+    momentum: { type: 'float', default: 0.1, min: 0, max: 1, label: '动量' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
   estimateParams: (inputs) => {
     const c = inputs[0]?.[0] || 0;
@@ -269,27 +269,27 @@ MODULE_REGISTRY.register({
 
 MODULE_REGISTRY.register({
   type: 'SiLU',
-  label: 'SiLU',
+  label: 'SiLU 激活',
   category: 'basic',
   color: '#a78bfa',
   params: {},
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
 });
 
 MODULE_REGISTRY.register({
   type: 'MaxPool2d',
-  label: 'MaxPool2d',
+  label: '最大池化',
   category: 'basic',
   color: '#f472b6',
   params: {
     kernel_size: { type: 'int', default: 2, min: 1, max: 16, label: 'Kernel Size' },
     stride: { type: 'int', default: 2, min: 1, max: 16, label: 'Stride' },
-    padding: { type: 'int', default: 0, min: 0, max: 8, label: 'Padding' },
+    padding: { type: 'int', default: 0, min: 0, max: 8, label: '填充' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0, 0, 0]];
     const [c, h, w] = inputs[0];
@@ -313,15 +313,15 @@ MODULE_REGISTRY.register({
 
 MODULE_REGISTRY.register({
   type: 'Flatten',
-  label: 'Flatten',
+  label: '展平',
   category: 'basic',
   color: '#fbbf24',
   params: {
-    start_dim: { type: 'int', default: 1, min: 0, max: 4, label: 'Start Dim' },
-    end_dim: { type: 'int', default: -1, min: -4, max: 4, label: 'End Dim' },
+    start_dim: { type: 'int', default: 1, min: 0, max: 4, label: '起始维度' },
+    end_dim: { type: 'int', default: -1, min: -4, max: 4, label: '结束维度' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => {
     if (!inputs[0]) return [[0]];
     const shape = inputs[0];
@@ -333,15 +333,15 @@ MODULE_REGISTRY.register({
 
 MODULE_REGISTRY.register({
   type: 'Linear',
-  label: 'Linear',
+  label: '全连接',
   category: 'basic',
   color: '#6366f1',
   params: {
-    out_features: { type: 'int', default: 1000, min: 1, max: 100000, label: 'Out Features' },
-    bias: { type: 'bool', default: true, label: 'Bias' },
+    out_features: { type: 'int', default: 1000, min: 1, max: 100000, label: '输出特征数' },
+    bias: { type: 'bool', default: true, label: '偏置' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
     if (!inputs[0]) return [[0]];
     return [[params.out_features as number]];
@@ -361,27 +361,27 @@ MODULE_REGISTRY.register({
 
 MODULE_REGISTRY.register({
   type: 'CA',
-  label: 'Coordinate Attention',
+  label: '坐标注意力',
   category: 'attention',
   color: '#fb923c',
   params: {
-    reduction: { type: 'int', default: 32, min: 1, max: 128, label: 'Reduction' },
+    reduction: { type: 'int', default: 32, min: 1, max: 128, label: '缩减比' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
 });
 
 MODULE_REGISTRY.register({
   type: 'SimAM',
-  label: 'SimAM',
+  label: 'SimAM 注意力',
   category: 'attention',
   color: '#e879f9',
   params: {
     lambda_val: { type: 'float', default: 0.0001, min: 0, max: 1, label: 'Lambda' },
   },
-  inputs: [{ id: 'in', label: 'Input', required: true }],
-  outputs: [{ id: 'out', label: 'Output', required: true }],
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
 });
 
@@ -392,10 +392,10 @@ export function getModulesByCategory(): Record<string, ModuleDefinition[]> {
 
 /** Category display names */
 export const CATEGORY_LABELS: Record<string, string> = {
-  input: 'Input',
-  basic: 'Basic',
-  composite: 'Composite',
-  attention: 'Attention',
-  head: 'Head',
-  connector: 'Connector',
+  input: '输入',
+  basic: '基础',
+  composite: '复合',
+  attention: '注意力',
+  head: '检测头',
+  connector: '连接',
 };

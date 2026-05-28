@@ -81,7 +81,7 @@ export function ErrorPanel({ errors, nodes, onNavigate }: ErrorPanelProps) {
         onClick={() => setExpanded((v) => !v)}
         className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-lg shadow-sm text-[10px] text-zinc-400 flex items-center gap-3 hover:bg-white/90 transition-colors"
       >
-        <span>{nodes.length} nodes</span>
+        <span>{nodes.length} 个节点</span>
         <span className="flex items-center gap-1 text-red-500 font-semibold">
           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold">
             !

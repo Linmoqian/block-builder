@@ -95,15 +95,15 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
                     onChange={(e) => onParamChange(key, e.target.checked)}
                     className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-xs text-zinc-600">{(value as boolean) ? 'True' : 'False'}</span>
+                  <span className="text-xs text-zinc-600">{(value as boolean) ? '是' : '否'}</span>
                 </label>
               )}
 
               {(paramDef.min !== undefined || paramDef.max !== undefined) && (
                 <p className="text-[9px] text-zinc-400">
-                  {paramDef.min !== undefined && `min: ${paramDef.min}`}
+                  {paramDef.min !== undefined && `最小: ${paramDef.min}`}
                   {paramDef.min !== undefined && paramDef.max !== undefined && ' · '}
-                  {paramDef.max !== undefined && `max: ${paramDef.max}`}
+                  {paramDef.max !== undefined && `最大: ${paramDef.max}`}
                 </p>
               )}
             </div>
@@ -113,10 +113,10 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
 
       {/* Port info */}
       <div className="pt-3 border-t border-zinc-100 space-y-2">
-        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Ports</h4>
+        <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">端口</h4>
         {def.inputs.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[10px] text-zinc-500 font-semibold">Inputs:</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">输入:</span>
             {def.inputs.map((port) => (
               <div key={port.id} className="flex items-center gap-1.5 ml-2">
                 <div className="w-2 h-2 rounded-full border-2" style={{ borderColor: def.color, background: '#fff' }} />
@@ -128,7 +128,7 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
         )}
         {def.outputs.length > 0 && (
           <div className="space-y-1">
-            <span className="text-[10px] text-zinc-500 font-semibold">Outputs:</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">输出:</span>
             {def.outputs.map((port) => (
               <div key={port.id} className="flex items-center gap-1.5 ml-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: def.color }} />

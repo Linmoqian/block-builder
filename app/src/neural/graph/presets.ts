@@ -203,7 +203,7 @@ export const YOLOV8_MEDIUM: GraphIR = {
 };
 
 export const PRESETS: Record<string, { label: string; graph: GraphIR }> = {
-  'yolov8-nano': { label: 'YOLOv8 Nano', graph: YOLOV8_NANO },
-  'yolov8-small': { label: 'YOLOv8 Small', graph: YOLOV8_SMALL },
-  'yolov8-medium': { label: 'YOLOv8 Medium', graph: YOLOV8_MEDIUM },
+  'yolov8-nano': { label: 'YOLOv8 Nano (超轻量)', graph: YOLOV8_NANO },
+  'yolov8-small': { label: 'YOLOv8 Small (轻量)', graph: YOLOV8_SMALL },
+  'yolov8-medium': { label: 'YOLOv8 Medium (中等)', graph: YOLOV8_MEDIUM },
 };

@@ -21,11 +21,11 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
           onClick={handleCopy}
           className="px-2 py-1 text-[10px] font-semibold text-zinc-300 hover:text-white bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
         >
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? '已复制' : '复制'}
         </button>
       </div>
       <pre className="flex-1 overflow-auto p-3 text-[11px] font-mono text-emerald-300 bg-zinc-900 whitespace-pre-wrap">
-        {yaml || '# Add nodes to generate YAML'}
+        {yaml || '# 添加节点以生成 YAML'}
       </pre>
     </div>
   );

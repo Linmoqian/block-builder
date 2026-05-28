@@ -419,26 +419,26 @@ function NeuralEditorInner() {
         {/* Left sidebar */}
         <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-zinc-100">
-            <h2 className="text-sm font-bold text-zinc-700">Modules</h2>
-            <p className="text-[10px] text-zinc-400 mt-0.5">Drag to canvas</p>
+            <h2 className="text-sm font-bold text-zinc-700">模块</h2>
+            <p className="text-[10px] text-zinc-400 mt-0.5">拖拽到画布</p>
           </div>
           <ModulePalette />
           <div className="px-4 py-3 border-t border-zinc-100 space-y-2">
             <div className="flex gap-2">
-              <button onClick={handleSaveJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Save</button>
-              <button onClick={handleLoadJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Load</button>
+              <button onClick={handleSaveJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">保存</button>
+              <button onClick={handleLoadJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">加载</button>
             </div>
-            <button onClick={handleImportYaml} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Import YAML</button>
+            <button onClick={handleImportYaml} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">导入 YAML</button>
             <select onChange={(e) => e.target.value && handleLoadPreset(e.target.value)} defaultValue="" className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer">
-              <option value="" disabled>Load Preset...</option>
+              <option value="" disabled>加载预设...</option>
               {Object.entries(PRESETS).map(([key, preset]) => (<option key={key} value={key}>{preset.label}</option>))}
             </select>
-            <button onClick={handleAutoLayout} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">Re-layout</button>
+            <button onClick={handleAutoLayout} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">重新布局</button>
             <div className="flex gap-2">
-              <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">Export YAML</button>
+              <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">导出 YAML</button>
               <button onClick={handleExportPyTorch} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">PyTorch</button>
             </div>
-            <button onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">Clear Canvas</button>
+            <button onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">清空画布</button>
           </div>
         </aside>
 
@@ -466,7 +466,7 @@ function NeuralEditorInner() {
             <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
             <Panel position="top-center">
               <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
-                Drag modules · Connect handles · Ctrl+Z Undo · Ctrl+S Save
+                拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+S 保存
               </div>
             </Panel>
             <Panel position="bottom-left">
@@ -474,7 +474,7 @@ function NeuralEditorInner() {
             </Panel>
             <Panel position="bottom-right">
               <div className="bg-white/80 backdrop-blur-md border border-zinc-200 px-3 py-1.5 rounded-full shadow-lg text-[10px] text-zinc-400 font-medium">
-                {formatParams(modelStats.totalParams)} params · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
+                {formatParams(modelStats.totalParams)} 参数 · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
               </div>
             </Panel>
           </ReactFlow>
@@ -483,7 +483,7 @@ function NeuralEditorInner() {
         {/* Right sidebar */}
         <aside className="w-80 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
           <div className="flex border-b border-zinc-200">
-            <button onClick={() => setRightTab('properties')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'properties' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>Properties</button>
+            <button onClick={() => setRightTab('properties')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'properties' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>属性</button>
             <button onClick={() => setRightTab('yaml')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'yaml' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>YAML</button>
           </div>
           {rightTab === 'properties' ? (
@@ -493,7 +493,7 @@ function NeuralEditorInner() {
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center p-4">
-                <p className="text-xs text-zinc-400 text-center">Click a node to edit parameters</p>
+                <p className="text-xs text-zinc-400 text-center">点击节点编辑参数</p>
               </div>
             )
           ) : (

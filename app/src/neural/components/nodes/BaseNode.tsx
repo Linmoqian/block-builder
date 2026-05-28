@@ -34,7 +34,7 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: def.color }} />
         <span className="text-xs font-bold text-zinc-700">{def.label}</span>
         {hasError && (
-          <span className="ml-auto text-red-500 text-[10px] font-bold">ERROR</span>
+          <span className="ml-auto text-red-500 text-[10px] font-bold">错误</span>
         )}
       </div>
 

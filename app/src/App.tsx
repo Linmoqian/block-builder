@@ -45,7 +45,7 @@ export default function App() {
             <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-purple-500" />
           </div>
         )}
-        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mr-3">Mode</span>
+        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mr-3">模式</span>
         <button
           onClick={() => setMode('neural')}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
@@ -55,7 +55,7 @@ export default function App() {
           }`}
         >
           <Cpu size={14} />
-          Network Editor
+          网络编辑器
         </button>
         <button
           onClick={() => setMode('legacy')}
@@ -66,7 +66,7 @@ export default function App() {
           }`}
         >
           <Layers size={14} />
-          Shape Editor
+          形状编辑器
         </button>
         <div className="flex-1" data-tauri-drag-region />
         {isTauri && <WindowControls />}
@@ -77,7 +77,7 @@ export default function App() {
         <Suspense
           fallback={
             <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
-              Loading...
+              加载中...
             </div>
           }
         >
