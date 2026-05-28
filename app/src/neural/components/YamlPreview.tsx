@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface YamlPreviewProps {
   yaml: string;
@@ -14,19 +16,23 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700">
-        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">YOLO YAML</span>
-        <button
+    <Card className="flex flex-col h-full bg-zinc-900 border-zinc-700 rounded-none">
+      <CardHeader className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700 space-y-0">
+        <CardTitle className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">YOLO YAML</CardTitle>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleCopy}
-          className="px-2 py-1 text-[10px] font-semibold text-zinc-300 hover:text-white bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+          className="px-2 py-1 text-[10px] font-semibold text-zinc-300 hover:text-white bg-zinc-700 hover:bg-zinc-600"
         >
           {copied ? '已复制' : '复制'}
-        </button>
-      </div>
-      <pre className="flex-1 overflow-auto p-3 text-[11px] font-mono text-emerald-300 bg-zinc-900 whitespace-pre-wrap">
-        {yaml || '# 添加节点以生成 YAML'}
-      </pre>
-    </div>
+        </Button>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-3">
+        <pre className="text-[11px] font-mono text-emerald-300 bg-zinc-900 whitespace-pre-wrap">
+          {yaml || '# 添加节点以生成 YAML'}
+        </pre>
+      </CardContent>
+    </Card>
   );
 }

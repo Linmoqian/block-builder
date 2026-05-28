@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ValidationError } from '../graph/types';
 import { MODULE_REGISTRY } from '../graph/registry';
 
@@ -43,36 +45,38 @@ export function ErrorPanel({ errors, nodes, onNavigate }: ErrorPanelProps) {
     <div className="flex flex-col items-start gap-0">
       {/* Error list (expanded) */}
       {expanded && (
-        <div className="mb-1 bg-white/95 backdrop-blur-md border border-zinc-200 rounded-lg shadow-lg max-h-64 overflow-y-auto w-80">
-          {errors.map((err, i) => (
-            <button
-              key={i}
-              onClick={() => err.nodeId && onNavigate(err.nodeId)}
-              disabled={!err.nodeId}
-              className={`w-full text-left px-3 py-2 border-b border-zinc-100 last:border-b-0 transition-colors ${
-                err.nodeId ? 'hover:bg-zinc-50 cursor-pointer' : 'cursor-default'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold leading-none ${TYPE_COLORS[err.type]}`}>
-                  {TYPE_LABELS[err.type]}
-                </span>
-                {err.nodeId && (
-                  <span className="text-[10px] font-semibold text-zinc-700">
-                    {getNodeLabel(err.nodeId)}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-zinc-600 mt-1 leading-relaxed">
-                {err.message}
-              </p>
-              {err.suggestion && (
-                <p className="text-[10px] text-blue-500 mt-0.5 leading-relaxed">
-                  → {err.suggestion}
+        <div className="mb-1 bg-white/95 backdrop-blur-md border border-zinc-200 rounded-lg shadow-lg w-80">
+          <ScrollArea className="max-h-64">
+            {errors.map((err, i) => (
+              <button
+                key={i}
+                onClick={() => err.nodeId && onNavigate(err.nodeId)}
+                disabled={!err.nodeId}
+                className={`w-full text-left px-3 py-2 border-b border-zinc-100 last:border-b-0 transition-colors ${
+                  err.nodeId ? 'hover:bg-zinc-50 cursor-pointer' : 'cursor-default'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={`px-1.5 py-0.5 text-[9px] font-bold leading-none border-0 ${TYPE_COLORS[err.type]}`}>
+                    {TYPE_LABELS[err.type]}
+                  </Badge>
+                  {err.nodeId && (
+                    <span className="text-[10px] font-semibold text-zinc-700">
+                      {getNodeLabel(err.nodeId)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-zinc-600 mt-1 leading-relaxed">
+                  {err.message}
                 </p>
-              )}
-            </button>
-          ))}
+                {err.suggestion && (
+                  <p className="text-[10px] text-blue-500 mt-0.5 leading-relaxed">
+                    → {err.suggestion}
+                  </p>
+                )}
+              </button>
+            ))}
+          </ScrollArea>
         </div>
       )}
 
