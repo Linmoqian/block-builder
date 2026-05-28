@@ -13,7 +13,9 @@ import '@xyflow/react/dist/style.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { save as tauriSave, open as tauriOpen } from '@tauri-apps/plugin-dialog';
-import { useGraphStore, RFNode } from './store/graphStore';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useGraphStore, RFNode, RightTab } from './store/graphStore';
 import { ModulePalette } from './components/ModulePalette';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { YamlPreview } from './components/YamlPreview';
@@ -416,20 +418,20 @@ function NeuralEditorInner() {
         <ModulePalette />
         <div className="px-4 py-3 border-t border-zinc-100 space-y-2">
           <div className="flex gap-2">
-            <button onClick={handleSaveJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">保存</button>
-            <button onClick={handleLoadJson} className="flex-1 py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">加载</button>
+            <Button variant="secondary" size="sm" onClick={handleSaveJson} className="flex-1 text-[10px] font-semibold">保存</Button>
+            <Button variant="secondary" size="sm" onClick={handleLoadJson} className="flex-1 text-[10px] font-semibold">加载</Button>
           </div>
-          <button onClick={handleImportYaml} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">导入 YAML</button>
+          <Button variant="secondary" size="sm" onClick={handleImportYaml} className="w-full text-[10px] font-semibold">导入 YAML</Button>
           <select onChange={(e) => e.target.value && handleLoadPreset(e.target.value)} defaultValue="" className="w-full py-1.5 px-2 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200 cursor-pointer">
             <option value="" disabled>加载预设...</option>
             {Object.entries(PRESETS).map(([key, preset]) => (<option key={key} value={key}>{preset.label}</option>))}
           </select>
-          <button onClick={handleAutoLayout} className="w-full py-1.5 text-[10px] font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 rounded-lg transition-colors border border-zinc-200">重新布局</button>
+          <Button variant="secondary" size="sm" onClick={handleAutoLayout} className="w-full text-[10px] font-semibold">重新布局</Button>
           <div className="flex gap-2">
-            <button onClick={handleExportYaml} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">导出 YAML</button>
-            <button onClick={handleExportPyTorch} className="flex-1 py-1.5 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">PyTorch</button>
+            <Button variant="default" size="sm" onClick={handleExportYaml} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-[10px] font-semibold">导出 YAML</Button>
+            <Button variant="default" size="sm" onClick={handleExportPyTorch} className="flex-1 bg-blue-600 hover:bg-blue-700 text-[10px] font-semibold">PyTorch</Button>
           </div>
-          <button onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">清空画布</button>
+          <Button variant="ghost" size="sm" onClick={() => { if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph(); }} className="w-full text-zinc-500 hover:text-red-600 hover:bg-red-50 text-[10px] font-semibold">清空画布</Button>
         </div>
       </aside>
 
@@ -473,25 +475,27 @@ function NeuralEditorInner() {
 
       {/* Right sidebar */}
       <aside className="w-80 bg-white border-l border-zinc-200 flex flex-col shrink-0 overflow-hidden">
-        <div className="flex border-b border-zinc-200">
-          <button onClick={() => setRightTab('properties')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'properties' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>属性</button>
-          <button onClick={() => setRightTab('yaml')} className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors ${rightTab === 'yaml' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50' : 'text-zinc-400 hover:text-zinc-600'}`}>YAML</button>
-        </div>
-        {rightTab === 'properties' ? (
-          selectedNode ? (
-            <div className="flex-1 overflow-y-auto">
-              <PropertiesPanel nodeType={selectedNode.data.type} params={selectedNode.data.params} onParamChange={handleParamChange} />
-            </div>
+        <Tabs value={rightTab} onValueChange={(v) => setRightTab(v as RightTab)} className="flex flex-col flex-1">
+          <TabsList className="w-full rounded-none border-b border-zinc-200 bg-transparent p-0 h-auto">
+            <TabsTrigger value="properties" className="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-50/50 data-[state=active]:shadow-none rounded-none">属性</TabsTrigger>
+            <TabsTrigger value="yaml" className="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider data-[state=active]:text-emerald-600 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-emerald-50/50 data-[state=active]:shadow-none rounded-none">YAML</TabsTrigger>
+          </TabsList>
+          {rightTab === 'properties' ? (
+            selectedNode ? (
+              <div className="flex-1 overflow-y-auto">
+                <PropertiesPanel nodeType={selectedNode.data.type} params={selectedNode.data.params} onParamChange={handleParamChange} />
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <p className="text-xs text-zinc-400 text-center">点击节点编辑参数</p>
+              </div>
+            )
           ) : (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <p className="text-xs text-zinc-400 text-center">点击节点编辑参数</p>
+            <div className="flex-1 overflow-hidden">
+              <YamlPreview yaml={yamlContent} />
             </div>
-          )
-        ) : (
-          <div className="flex-1 overflow-hidden">
-            <YamlPreview yaml={yamlContent} />
-          </div>
-        )}
+          )}
+        </Tabs>
       </aside>
     </div>
   );
