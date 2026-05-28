@@ -1,8 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { ModulePalette } from './ModulePalette';
 import { PRESETS } from '../graph/presets';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface SidebarToolbarProps {
+  width: number;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onSaveJson: () => void;
   onLoadJson: () => void;
   onImportYaml: () => void;
@@ -14,6 +18,9 @@ interface SidebarToolbarProps {
 }
 
 export function SidebarToolbar({
+  width,
+  collapsed,
+  onToggleCollapse,
   onSaveJson,
   onLoadJson,
   onImportYaml,
@@ -23,11 +30,34 @@ export function SidebarToolbar({
   onClearGraph,
   onLoadPreset,
 }: SidebarToolbarProps) {
+  if (collapsed) {
+    return (
+      <div className="flex flex-col items-center py-3 w-10 bg-zinc-50/50 border-r border-zinc-200/40 shrink-0">
+        <button
+          onClick={onToggleCollapse}
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors"
+          title="展开侧栏"
+        >
+          <PanelLeftOpen size={16} />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <aside className="w-60 bg-zinc-50/50 border-r border-zinc-200/40 flex flex-col shrink-0">
-      <div className="px-5 py-4">
-        <h2 className="text-sm font-bold text-zinc-800 tracking-tight">模块</h2>
-        <p className="text-[11px] text-zinc-400 mt-0.5">拖拽到画布</p>
+    <aside className="bg-zinc-50/50 border-r border-zinc-200/40 flex flex-col shrink-0 overflow-hidden" style={{ width }}>
+      <div className="px-4 py-3 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-zinc-800 tracking-tight">模块</h2>
+          <p className="text-[11px] text-zinc-400 mt-0.5">拖拽到画布</p>
+        </div>
+        <button
+          onClick={onToggleCollapse}
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 transition-colors"
+          title="收起侧栏"
+        >
+          <PanelLeftClose size={15} />
+        </button>
       </div>
       <ModulePalette />
       <div className="px-5 py-4 border-t border-zinc-200/40 space-y-2.5">
