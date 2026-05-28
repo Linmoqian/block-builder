@@ -4,7 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const LegacyEditor = lazy(() => import('./components/LegacyEditor'));
 const NeuralEditor = lazy(() => import('./neural/NeuralEditor'));
-const BlocklyEditor = lazy(() => import('./blockly/BlocklyEditor'));
+const BlocklyEditor = lazy(() => import('./blockly/BlocklyEditor').then(m => ({ default: m.BlocklyEditor })));
 
 type EditorMode = 'legacy' | 'neural' | 'blockly';
 
