@@ -1,11 +1,12 @@
 import React, { useState, lazy, Suspense, useCallback } from 'react';
-import { Layers, Cpu, Minus, Square, X } from 'lucide-react';
+import { Layers, Cpu, Puzzle, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const LegacyEditor = lazy(() => import('./components/LegacyEditor'));
 const NeuralEditor = lazy(() => import('./neural/NeuralEditor'));
+const BlocklyEditor = lazy(() => import('./blockly/BlocklyEditor'));
 
-type EditorMode = 'legacy' | 'neural';
+type EditorMode = 'legacy' | 'neural' | 'blockly';
 
 const isTauri = '__TAURI_INTERNALS__' in window;
 
@@ -58,6 +59,17 @@ export default function App() {
           网络编辑器
         </button>
         <button
+          onClick={() => setMode('blockly')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+            mode === 'blockly'
+              ? 'bg-amber-600 text-white'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+          }`}
+        >
+          <Puzzle size={14} />
+          积木编程
+        </button>
+        <button
           onClick={() => setMode('legacy')}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
             mode === 'legacy'
@@ -81,7 +93,7 @@ export default function App() {
             </div>
           }
         >
-          {mode === 'neural' ? <NeuralEditor /> : <LegacyEditor />}
+          {mode === 'neural' ? <NeuralEditor /> : mode === 'blockly' ? <BlocklyEditor /> : <LegacyEditor />}
         </Suspense>
       </div>
     </div>
