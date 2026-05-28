@@ -85,7 +85,7 @@ export default function App() {
       </div>
 
       {/* Editor content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
         <Suspense
           fallback={
             <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
