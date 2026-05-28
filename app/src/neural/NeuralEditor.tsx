@@ -423,15 +423,13 @@ function NeuralEditorInner() {
       />
 
       {/* Canvas */}
-      <div ref={reactFlowWrapper} className="flex-1 min-w-0">
+      <div ref={reactFlowWrapper} className="flex-1 min-w-0" onDrop={onDrop} onDragOver={onDragOver}>
         <ReactFlow
           nodes={nodes}
           edges={styledEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
           onDelete={onDelete}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
