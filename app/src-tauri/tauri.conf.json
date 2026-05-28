@@ -12,9 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "Block Builder - 神经网络构建器",
+        "title": "Block Builder",
         "width": 1280,
         "height": 800,
+        "decorations": false,
         "resizable": true,
         "fullscreen": false
       }
