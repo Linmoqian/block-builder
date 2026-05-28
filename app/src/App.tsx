@@ -20,13 +20,13 @@ function WindowControls() {
 
   return (
     <div className="flex">
-      <button onClick={handleMinimize} className="flex items-center justify-center w-11 h-10 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors">
+      <button onClick={handleMinimize} className="flex items-center justify-center w-11 h-12 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors">
         <Minus size={14} />
       </button>
-      <button onClick={handleToggleMaximize} className="flex items-center justify-center w-11 h-10 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors">
+      <button onClick={handleToggleMaximize} className="flex items-center justify-center w-11 h-12 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors">
         <Square size={11} />
       </button>
-      <button onClick={handleClose} className="flex items-center justify-center w-11 h-10 text-zinc-400 hover:bg-red-600 hover:text-white transition-colors">
+      <button onClick={handleClose} className="flex items-center justify-center w-11 h-12 text-zinc-400 hover:bg-red-500 hover:text-white transition-colors">
         <X size={14} />
       </button>
     </div>
@@ -43,13 +43,13 @@ function NavBar() {
   const location = useLocation();
 
   return (
-    <div className="h-10 bg-zinc-900 flex items-center px-4 gap-2 z-50 shrink-0" data-tauri-drag-region>
+    <div className="h-12 bg-white/70 backdrop-blur-2xl border-b border-zinc-200/40 flex items-center px-5 gap-1 z-50 shrink-0" data-tauri-drag-region>
       {isTauri && (
-        <div className="flex items-center gap-2 mr-2" data-tauri-drag-region>
-          <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-400 to-purple-500" />
+        <div className="flex items-center gap-2 mr-3" data-tauri-drag-region>
+          <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 shadow-sm" />
         </div>
       )}
-      <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mr-3">模式</span>
+      <span className="text-xs font-bold text-zinc-300 uppercase tracking-widest mr-4 select-none">模式</span>
       {NAV_ITEMS.map((item) => {
         const isActive = location.pathname === item.path;
         const Icon = item.icon;
@@ -57,17 +57,19 @@ function NavBar() {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               isActive
-                ? `${item.activeColor} text-white`
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                ? 'bg-zinc-900 text-white shadow-elevation-1'
+                : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100'
             }`}
           >
-            <Icon size={14} />
+            <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
             {item.label}
           </Link>
         );
       })}
+      <div className="flex-1" data-tauri-drag-region />
+      <span className="text-xs text-zinc-400 font-semibold tracking-wide select-none">神经网络工坊</span>
       <div className="flex-1" data-tauri-drag-region />
       {isTauri && <WindowControls />}
     </div>
