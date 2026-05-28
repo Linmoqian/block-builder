@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Editor from '@monaco-editor/react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -28,10 +29,25 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
           {copied ? '已复制' : '复制'}
         </Button>
       </CardHeader>
-      <CardContent className="flex-1 overflow-auto p-3">
-        <pre className="text-[11px] font-mono text-emerald-300 bg-zinc-900 whitespace-pre-wrap">
-          {yaml || '# 添加节点以生成 YAML'}
-        </pre>
+      <CardContent className="flex-1 p-0 overflow-hidden">
+        <Editor
+          height="100%"
+          language="yaml"
+          theme="vs-dark"
+          value={yaml || '# 添加节点以生成 YAML'}
+          options={{
+            readOnly: true,
+            minimap: { enabled: false },
+            fontSize: 11,
+            lineNumbers: 'on',
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            padding: { top: 12 },
+            renderLineHighlight: 'none',
+            overviewRulerBorder: false,
+            scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+          }}
+        />
       </CardContent>
     </Card>
   );
