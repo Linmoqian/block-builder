@@ -10,6 +10,9 @@ import {
   Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { save as tauriSave, open as tauriOpen } from '@tauri-apps/plugin-dialog';
 import { useGraphState, RFNode } from './hooks/useGraphState';
 import { useGraphPersistence } from './hooks/useGraphPersistence';
 import { useShapeInference } from './hooks/useShapeInference';
@@ -20,7 +23,7 @@ import { YamlPreview } from './components/YamlPreview';
 import { ErrorPanel } from './components/ErrorPanel';
 import { BaseNode } from './components/nodes/BaseNode';
 import { MODULE_REGISTRY } from './graph/registry';
-import { downloadJson, uploadJson } from './graph/jsonIO';
+import { downloadJson, uploadJson, exportGraphIR } from './graph/jsonIO';
 import { exportYaml } from './graph/yamlExport';
 import { exportPyTorch } from './graph/pytorchExport';
 import { importYaml } from './graph/yamlImport';
@@ -28,6 +31,8 @@ import { autoLayout } from './graph/autoLayout';
 import { PRESETS } from './graph/presets';
 import { TensorShape, ParamValue, InferredShape } from './graph/types';
 import { computeModelStats, formatParams, formatFLOPs } from './graph/modelStats';
+
+const isTauri = '__TAURI_INTERNALS__' in window;
 
 const ShapeContext = createContext<Map<string, InferredShape>>(new Map());
 
@@ -194,63 +199,108 @@ function NeuralEditorInner() {
     [selectedNode, updateNodeParams]
   );
 
-  const handleSaveJson = useCallback(() => {
-    downloadJson(getGraphIR());
+  const handleSaveJson = useCallback(async () => {
+    const json = exportGraphIR(getGraphIR());
+    if (isTauri) {
+      const path = await tauriSave({ defaultPath: 'network-graph.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
+      if (path) {
+        await invoke('write_text_file', { path, content: json });
+      }
+    } else {
+      downloadJson(getGraphIR());
+    }
   }, [getGraphIR]);
 
   const handleLoadJson = useCallback(async () => {
     try {
-      const graph = await uploadJson();
-      loadGraphIR(graph);
-      pendingFitView.current = true;
+      if (isTauri) {
+        const result = await tauriOpen({ filters: [{ name: 'JSON', extensions: ['json'] }], multiple: false });
+        if (result) {
+          const path = typeof result === 'string' ? result : (result as unknown as string);
+          const json = await invoke('read_text_file', { path }) as string;
+          const { importGraphIR } = await import('./graph/jsonIO');
+          loadGraphIR(importGraphIR(json));
+          pendingFitView.current = true;
+        }
+      } else {
+        const graph = await uploadJson();
+        loadGraphIR(graph);
+        pendingFitView.current = true;
+      }
     } catch (e) {
       console.error('Failed to load graph:', e);
     }
   }, [loadGraphIR]);
 
-  const handleExportYaml = useCallback(() => {
+  const handleExportYaml = useCallback(async () => {
     const yaml = exportYaml(getGraphIR());
-    fetch('http://localhost:8080/export-yaml', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ yaml }),
-    }).catch(() => {});
-    const blob = new Blob([yaml], { type: 'text/yaml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'model.yaml';
-    a.click();
-    URL.revokeObjectURL(url);
+    if (isTauri) {
+      const path = await tauriSave({ defaultPath: 'model.yaml', filters: [{ name: 'YAML', extensions: ['yaml', 'yml'] }] });
+      if (path) {
+        await invoke('write_text_file', { path, content: yaml });
+      }
+    } else {
+      fetch('http://localhost:8080/export-yaml', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ yaml }),
+      }).catch(() => {});
+      const blob = new Blob([yaml], { type: 'text/yaml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'model.yaml';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   }, [getGraphIR]);
 
-  const handleExportPyTorch = useCallback(() => {
+  const handleExportPyTorch = useCallback(async () => {
     const code = exportPyTorch(getGraphIR());
-    fetch('http://localhost:8080/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    }).catch(() => {});
+    if (isTauri) {
+      const path = await tauriSave({ defaultPath: 'network.py', filters: [{ name: 'Python', extensions: ['py'] }] });
+      if (path) {
+        await invoke('write_text_file', { path, content: code });
+      }
+    } else {
+      fetch('http://localhost:8080/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      }).catch(() => {});
+    }
   }, [getGraphIR]);
 
   const handleImportYaml = useCallback(async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.yaml,.yml';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const graph = importYaml(text);
-        const laid = autoLayout(graph);
-        loadGraphIR(laid);
-        pendingFitView.current = true;
-      } catch (e) {
-        console.error('Failed to import YAML:', e);
+    try {
+      if (isTauri) {
+        const result = await tauriOpen({ filters: [{ name: 'YAML', extensions: ['yaml', 'yml'] }], multiple: false });
+        if (result) {
+          const path = typeof result === 'string' ? result : (result as unknown as string);
+          const text = await invoke('read_text_file', { path }) as string;
+          const graph = importYaml(text);
+          const laid = autoLayout(graph);
+          loadGraphIR(laid);
+          pendingFitView.current = true;
+        }
+      } else {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.yaml,.yml';
+        input.onchange = async () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          const text = await file.text();
+          const graph = importYaml(text);
+          const laid = autoLayout(graph);
+          loadGraphIR(laid);
+          pendingFitView.current = true;
+        };
+        input.click();
       }
-    };
-    input.click();
+    } catch (e) {
+      console.error('Failed to import YAML:', e);
+    }
   }, [loadGraphIR]);
 
   const handleLoadPreset = useCallback((presetKey: string) => {
@@ -268,6 +318,57 @@ function NeuralEditorInner() {
     loadGraphIR(laid);
     pendingFitView.current = true;
   }, [getGraphIR, loadGraphIR]);
+
+  // Tauri 原生菜单事件
+  useEffect(() => {
+    if (!isTauri) return;
+    const appWindow = getCurrentWindow();
+    const done = appWindow.listen<string>('tauri://menu', async (event) => {
+      const menuId = event.payload;
+      switch (menuId) {
+        case 'new_canvas':
+          if (window.confirm('确定清空画布？此操作不可撤销。')) clearGraph();
+          break;
+        case 'open_json':
+          await handleLoadJson();
+          break;
+        case 'save_json':
+          await handleSaveJson();
+          break;
+        case 'import_yaml':
+          await handleImportYaml();
+          break;
+        case 'export_yaml':
+          await handleExportYaml();
+          break;
+        case 'export_pytorch':
+          await handleExportPyTorch();
+          break;
+        case 'undo': {
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          const snapshot = undo();
+          if (snapshot) {
+            const selectedIds = snapshot.nodes.filter((n) => n.selected).map((n) => n.id);
+            loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) }, selectedIds);
+          }
+          break;
+        }
+        case 'redo': {
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          const snapshot = redo();
+          if (snapshot) {
+            const selectedIds = snapshot.nodes.filter((n) => n.selected).map((n) => n.id);
+            loadGraphIR({ nodes: snapshot.nodes.map((n) => ({ id: n.id, type: (n.data as { type: string }).type, position: n.position, params: (n.data as { params: Record<string, ParamValue> }).params })), edges: snapshot.edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle || 'out', targetHandle: e.targetHandle || 'in' })) }, selectedIds);
+          }
+          break;
+        }
+        case 'fit_view':
+          fitView({ padding: 0.2, duration: 300 });
+          break;
+      }
+    });
+    return () => { done.then((fn) => fn()); };
+  }, [clearGraph, handleLoadJson, handleSaveJson, handleImportYaml, handleExportYaml, handleExportPyTorch, undo, redo, loadGraphIR, fitView]);
 
   const yamlContent = useMemo(() => {
     if (nodes.length === 0) return '';
@@ -314,7 +415,7 @@ function NeuralEditorInner() {
 
   return (
     <ShapeContext.Provider value={shapeMap}>
-      <div className="flex h-full w-full">
+      <div className="flex flex-1 min-h-0">
         {/* Left sidebar */}
         <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col shrink-0">
           <div className="px-4 py-3 border-b border-zinc-100">
