@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MODULE_REGISTRY } from '../graph/registry';
 import { ParamValue } from '../graph/types';
+import { createParamSchema } from '../utils/paramSchema';
 
 interface PropertiesPanelProps {
   nodeType: string;
@@ -13,6 +17,20 @@ interface PropertiesPanelProps {
 
 export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesPanelProps) {
   const def = MODULE_REGISTRY.get(nodeType);
+
+  const schema = def ? createParamSchema(def.params) : z.object({});
+  type FormValues = z.infer<typeof schema>;
+
+  const { formState: { errors }, reset } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    values: params as FormValues,
+    mode: 'onChange',
+  });
+
+  useEffect(() => {
+    reset(params as FormValues);
+  }, [nodeType]);
+
   if (!def) return null;
 
   return (
@@ -36,67 +54,92 @@ export function PropertiesPanel({ nodeType, params, onParamChange }: PropertiesP
               </Label>
 
               {paramDef.type === 'int' && (
-                <Input
-                  type="number"
-                  step={1}
-                  min={paramDef.min}
-                  max={paramDef.max}
-                  value={value as number}
-                  onChange={(e) => {
-                    let v = parseInt(e.target.value, 10) || 0;
-                    if (paramDef.min !== undefined) v = Math.max(v, paramDef.min);
-                    if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
-                    onParamChange(key, v);
-                  }}
-                />
+                <>
+                  <Input
+                    type="number"
+                    step={1}
+                    min={paramDef.min}
+                    max={paramDef.max}
+                    value={value as number}
+                    onChange={(e) => {
+                      let v = parseInt(e.target.value, 10) || 0;
+                      if (paramDef.min !== undefined) v = Math.max(v, paramDef.min);
+                      if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
+                      onParamChange(key, v);
+                    }}
+                  />
+                  {errors[key] && (
+                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                  )}
+                </>
               )}
 
               {paramDef.type === 'float' && (
-                <Input
-                  type="number"
-                  step={0.1}
-                  min={paramDef.min}
-                  max={paramDef.max}
-                  value={value as number}
-                  onChange={(e) => {
-                    let v = parseFloat(e.target.value) || 0;
-                    if (paramDef.min !== undefined) v = Math.max(v, paramDef.min);
-                    if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
-                    onParamChange(key, v);
-                  }}
-                />
+                <>
+                  <Input
+                    type="number"
+                    step={0.1}
+                    min={paramDef.min}
+                    max={paramDef.max}
+                    value={value as number}
+                    onChange={(e) => {
+                      let v = parseFloat(e.target.value) || 0;
+                      if (paramDef.min !== undefined) v = Math.max(v, paramDef.min);
+                      if (paramDef.max !== undefined) v = Math.min(v, paramDef.max);
+                      onParamChange(key, v);
+                    }}
+                  />
+                  {errors[key] && (
+                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                  )}
+                </>
               )}
 
               {paramDef.type === 'string' && (
-                <Input
-                  type="text"
-                  value={value as string}
-                  onChange={(e) => onParamChange(key, e.target.value)}
-                />
+                <>
+                  <Input
+                    type="text"
+                    value={value as string}
+                    onChange={(e) => onParamChange(key, e.target.value)}
+                  />
+                  {errors[key] && (
+                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                  )}
+                </>
               )}
 
               {paramDef.type === 'select' && (
-                <select
-                  value={value as string}
-                  onChange={(e) => onParamChange(key, e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {paramDef.options?.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={value as string}
+                    onChange={(e) => onParamChange(key, e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    {paramDef.options?.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                  {errors[key] && (
+                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                  )}
+                </>
               )}
 
               {paramDef.type === 'bool' && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={value as boolean}
-                    onChange={(e) => onParamChange(key, e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-xs text-zinc-600">{(value as boolean) ? '是' : '否'}</span>
-                </label>
+                <>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={value as boolean}
+                      onChange={(e) => onParamChange(key, e.target.checked)}
+                      className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-xs text-zinc-600">{(value as boolean) ? '是' : '否'}</span>
+                  </label>
+                  {errors[key] && (
+                    <p className="text-[9px] text-red-500 mt-0.5">{errors[key]?.message?.toString()}</p>
+                  )}
+                </>
               )}
 
               {(paramDef.min !== undefined || paramDef.max !== undefined) && (
