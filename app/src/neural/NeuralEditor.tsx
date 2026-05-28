@@ -27,6 +27,7 @@ import { autoLayout } from './graph/autoLayout';
 import { PRESETS } from './graph/presets';
 import { ParamValue } from './graph/types';
 import { computeModelStats, formatParams, formatFLOPs } from './graph/modelStats';
+import { ResizeHandle } from './components/ResizeHandle';
 
 const isTauri = '__TAURI_INTERNALS__' in window;
 
@@ -51,6 +52,12 @@ const nodeTypes = { neural: NeuralNode };
 function NeuralEditorInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
+
+  // Sidebar state
+  const [leftWidth, setLeftWidth] = useState(240);
+  const [rightWidth, setRightWidth] = useState(300);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
 
   // Store selectors
   const nodes = useGraphStore((s) => s.nodes);
@@ -408,10 +415,21 @@ function NeuralEditorInner() {
     [fitView]
   );
 
+  const handleLeftResize = useCallback((delta: number) => {
+    setLeftWidth((w) => Math.min(400, Math.max(180, w + delta)));
+  }, []);
+
+  const handleRightResize = useCallback((delta: number) => {
+    setRightWidth((w) => Math.min(500, Math.max(240, w + delta)));
+  }, []);
+
   return (
     <div className="flex flex-1 min-h-0">
       {/* Left sidebar */}
       <SidebarToolbar
+        width={leftWidth}
+        collapsed={leftCollapsed}
+        onToggleCollapse={() => setLeftCollapsed((c) => !c)}
         onSaveJson={handleSaveJson}
         onLoadJson={handleLoadJson}
         onImportYaml={handleImportYaml}
@@ -421,6 +439,9 @@ function NeuralEditorInner() {
         onClearGraph={handleClearGraph}
         onLoadPreset={handleLoadPreset}
       />
+      {!leftCollapsed && (
+        <ResizeHandle side="left" onResize={handleLeftResize} />
+      )}
 
       {/* Canvas */}
       <div ref={reactFlowWrapper} className="flex-1 min-w-0" onDrop={onDrop} onDragOver={onDragOver}>
@@ -439,11 +460,11 @@ function NeuralEditorInner() {
           snapGrid={[16, 16]}
           defaultEdgeOptions={{ animated: true }}
         >
-          <Background gap={16} size={1} />
+          <Background gap={16} size={0.8} />
           <Controls />
           <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
           <Panel position="top-center">
-            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-4 py-2 rounded-full shadow-lg text-xs text-zinc-500 font-medium">
+            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-4 py-2 rounded-full shadow-elevation-2 text-caption text-zinc-500 font-medium">
               拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+S 保存
             </div>
           </Panel>
@@ -451,7 +472,7 @@ function NeuralEditorInner() {
             <ErrorPanel errors={validationErrors} nodes={nodes} onNavigate={handleNavigate} />
           </Panel>
           <Panel position="bottom-right">
-            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-3 py-1.5 rounded-full shadow-lg text-[11px] text-zinc-400 font-medium">
+            <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-3 py-1.5 rounded-full shadow-elevation-2 text-caption text-zinc-400 font-medium">
               {formatParams(modelStats.totalParams)} 参数 · {formatFLOPs(modelStats.totalFLOPs)} FLOPs
             </div>
           </Panel>
@@ -459,7 +480,13 @@ function NeuralEditorInner() {
       </div>
 
       {/* Right sidebar */}
+      {!rightCollapsed && (
+        <ResizeHandle side="right" onResize={handleRightResize} />
+      )}
       <RightPanel
+        width={rightWidth}
+        collapsed={rightCollapsed}
+        onToggleCollapse={() => setRightCollapsed((c) => !c)}
         rightTab={rightTab}
         setRightTab={setRightTab}
         selectedNode={selectedNode}
