@@ -73,6 +73,31 @@ export const toolboxConfig: ToolboxConfig = {
     },
     {
       kind: 'category',
+      name: 'YOLO 架构',
+      colour: '#e11d48',
+      contents: [
+        { kind: 'block', type: 'yolo_backbone' },
+        { kind: 'block', type: 'yolo_neck' },
+        { kind: 'block', type: 'yolo_head' },
+      ],
+    },
+    {
+      kind: 'category',
+      name: 'YOLO 训练',
+      colour: '#ea580c',
+      contents: [
+        { kind: 'block', type: 'yolo_dataset' },
+        { kind: 'block', type: 'yolo_augment' },
+        { kind: 'block', type: 'yolo_anchors' },
+        { kind: 'block', type: 'yolo_train_config' },
+        { kind: 'block', type: 'yolo_nms' },
+        { kind: 'block', type: 'yolo_inference' },
+        { kind: 'block', type: 'yolo_map_eval' },
+        { kind: 'block', type: 'yolo_export' },
+      ],
+    },
+    {
+      kind: 'category',
       name: '训练',
       colour: '#f59e0b',
       contents: [
