@@ -36,3 +36,15 @@
 - [x] 撤销/重做（Ctrl+Z / Ctrl+Shift+Z）
 - [x] 键盘快捷键（Ctrl+S, Ctrl+E）
 - [x] 右侧 Tab 系统（Properties | YAML）
+- [x] Ctrl+Z 在 input 聚焦时正常工作
+- [x] 撤销后保持节点选中状态
+- [x] Detect 节点显示形状信息
+- [x] 图加载后自动 fitView
+
+## Phase 6: Tauri 桌面化
+- [x] 集成 Tauri 2 框架（src-tauri/）
+- [x] 自定义标题栏（窗口控制按钮集成到顶部栏）
+- [x] 原生菜单栏（文件/编辑/视图）
+- [x] 系统托盘（显示窗口/退出）
+- [x] 关闭窗口隐藏到托盘
+- [x] 原生文件对话框（保存/加载/导入/导出）
