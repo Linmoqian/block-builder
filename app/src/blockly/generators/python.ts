@@ -149,3 +149,9 @@ if __name__ == '__main__':
     print(f'Output shape: {y.shape}')
 `;
 }
+
+export function generateFullCode(workspace: Blockly.Workspace): string {
+  const raw = pythonGenerator.workspaceToCode(workspace);
+  if (!raw || raw.trim().length === 0) return '# 拖拽积木块生成代码\n';
+  return raw;
+}
