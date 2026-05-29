@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { MODULE_REGISTRY } from '../../graph/registry';
-import { ParamValue, TensorShape } from '../../graph/types';
+import { InferredShape, ParamValue, TensorShape } from '../../graph/types';
 
 interface BaseNodeProps {
   type: string;
@@ -10,11 +10,28 @@ interface BaseNodeProps {
   hasError?: boolean;
   errorMessage?: string;
   inferredShape?: TensorShape | null;
+  inferredData?: InferredShape | null;
 }
 
-export function BaseNode({ type, params, selected, hasError, errorMessage, inferredShape }: BaseNodeProps) {
+/** Category accent color mapping */
+const CATEGORY_ACCENT: Record<string, string> = {
+  input: '#22c55e',
+  basic: '#3b82f6',
+  composite: '#a855f7',
+  attention: '#f97316',
+  head: '#ef4444',
+  connector: '#ec4899',
+};
+
+function formatShape(shape: TensorShape): string {
+  return `[${(shape as number[]).join(', ')}]`;
+}
+
+export function BaseNode({ type, params, selected, hasError, errorMessage, inferredData }: BaseNodeProps) {
   const def = MODULE_REGISTRY.get(type);
   if (!def) return null;
+
+  const accent = CATEGORY_ACCENT[def.category] || def.color;
 
   const borderColor = hasError
     ? 'border-red-300/80 ring-2 ring-red-500/10'
@@ -22,13 +39,25 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
       ? 'border-zinc-300 ring-2 ring-blue-500/15'
       : 'border-zinc-200/60 hover:border-zinc-300/80';
 
+  // Parameter summary
+  const paramText = def.paramSummary ? def.paramSummary(params) : null;
+
+  // Shape flow: input → output
+  const inputShapes = inferredData?.inputShapes ?? [];
+  const outputShapes = inferredData?.outputShapes ?? [];
+  const hasInputShape = inputShapes.length > 0 && inputShapes.some(s => (s as number[])[0] !== 0);
+  const hasOutputShape = outputShapes.length > 0 && outputShapes.some(s => (s as number[])[0] !== 0);
+
+  const handleSize = 9;
+
   return (
     <div
-      className={`bg-white rounded-lg shadow-elevation-1 border ${borderColor} min-w-[160px] transition-all duration-200 hover:shadow-elevation-2`}
+      className={`bg-white rounded-lg shadow-elevation-1 border-l-[3px] border ${borderColor} min-w-[180px] transition-all duration-200 hover:shadow-elevation-2`}
+      style={{ borderLeftColor: accent }}
     >
       {/* Header */}
       <div
-        className="px-3 py-2.5 rounded-t-lg flex items-center gap-2"
+        className="px-3 py-2 rounded-t-lg flex items-center gap-2"
         style={{ backgroundColor: def.color + '0A' }}
       >
         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: def.color }} />
@@ -38,11 +67,20 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
         )}
       </div>
 
-      {/* Body: shape info */}
-      <div className="px-3 py-2 text-[11px] text-zinc-400 font-mono tracking-tight">
-        {inferredShape && inferredShape[0] !== 0 ? (
+      {/* Parameter summary */}
+      {paramText && (
+        <div className="px-3 pt-1.5 text-[11px] text-zinc-400 font-mono tracking-tight">
+          {paramText}
+        </div>
+      )}
+
+      {/* Shape flow */}
+      <div className="px-3 py-1.5 text-[11px] font-mono tracking-tight">
+        {hasInputShape || hasOutputShape ? (
           <span className={hasError ? 'text-red-400' : 'text-zinc-500'}>
-            [{(inferredShape as number[]).join(', ')}]
+            {hasInputShape && inputShapes.length === 1 ? formatShape(inputShapes[0]) : ''}
+            {hasInputShape && hasOutputShape ? ' → ' : ''}
+            {hasOutputShape && outputShapes.length === 1 ? formatShape(outputShapes[0]) : hasOutputShape ? `${outputShapes.length} outputs` : ''}
           </span>
         ) : (
           <span className="text-zinc-200">--</span>
@@ -67,9 +105,11 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
             top: def.inputs.length === 1 ? '50%' : `${((i + 1) / (def.inputs.length + 1)) * 100}%`,
             background: '#fff',
             border: `1.5px solid ${def.color}80`,
-            width: 7,
-            height: 7,
+            width: handleSize,
+            height: handleSize,
+            transition: 'width 0.15s, height 0.15s',
           }}
+          className="react-flow-handle-target"
         />
       ))}
 
@@ -84,9 +124,11 @@ export function BaseNode({ type, params, selected, hasError, errorMessage, infer
             top: def.outputs.length === 1 ? '50%' : `${((i + 1) / (def.outputs.length + 1)) * 100}%`,
             background: def.color,
             border: `1.5px solid ${def.color}`,
-            width: 7,
-            height: 7,
+            width: handleSize,
+            height: handleSize,
+            transition: 'width 0.15s, height 0.15s',
           }}
+          className="react-flow-handle-source"
         />
       ))}
     </div>
