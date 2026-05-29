@@ -1,5 +1,7 @@
 """端到端流水线测试：export → read-back → validate → run"""
 
+import pytest
+
 
 class TestPipeline:
     def test_export_then_read_back(self, client, setup_tmpsrc):
@@ -24,6 +26,7 @@ class TestPipeline:
         assert data["success"] is True
         assert data["content"] == yaml_content
 
+    @pytest.mark.requires_torch
     def test_export_validate_run(self, client, setup_tmpsrc):
         """完整流水线：导出代码 → 验证模型 → 运行文件"""
         code = """import torch
@@ -55,6 +58,7 @@ class CustomModel(nn.Module):
         assert run_data["status"] == "ok"
         assert run_data["returncode"] == 0
 
+    @pytest.mark.requires_torch
     def test_invalid_model_fails_validation(self, client):
         """通道数不匹配的模型应验证失败"""
         code = """import torch

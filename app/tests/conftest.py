@@ -1,11 +1,44 @@
 """共享 pytest fixtures"""
 
 import os
+import subprocess
+import sys
 
 import pytest
 from fastapi.testclient import TestClient
 
 import server_fastapi
+
+
+def _torch_available() -> bool:
+    """检查 subprocess 能否导入真正的 torch（排除本地 app/torch/ 干扰）"""
+    result = subprocess.run(
+        [sys.executable, "-c", "import torch; print(torch.__version__)"],
+        capture_output=True, text=True, timeout=10,
+    )
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
+# 缓存结果，避免每个测试都跑一次 subprocess
+_torch_available_cache: bool | None = None
+
+
+def torch_available() -> bool:
+    global _torch_available_cache
+    if _torch_available_cache is None:
+        _torch_available_cache = _torch_available()
+    return _torch_available_cache
+
+
+def pytest_collection_modifyitems(config, items):
+    """自动跳过需要 torch 但环境没有 torch 的测试"""
+    if torch_available():
+        return
+
+    skip = pytest.mark.skip(reason="PyTorch 未安装，运行 conda install pytorch 安装")
+    for item in items:
+        if item.get_closest_marker("requires_torch"):
+            item.add_marker(skip)
 
 
 @pytest.fixture(autouse=True)
@@ -81,3 +114,4 @@ def synthetic_runs_dir(tmp_path, monkeypatch):
 def pytest_configure(config):
     config.addinivalue_line("markers", "slow: 耗时 >5s，需要真实训练或长时间 subprocess")
     config.addinivalue_line("markers", "integration: 需要 ultralytics + 数据集")
+    config.addinivalue_line("markers", "requires_torch: 需要 PyTorch subprocess 可用")

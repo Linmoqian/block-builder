@@ -2,6 +2,8 @@
 
 import pytest
 
+pytestmark = pytest.mark.requires_torch
+
 HEADER = "import torch\nimport torch.nn as nn\n\n"
 
 

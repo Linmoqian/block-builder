@@ -2,6 +2,8 @@
 
 import pytest
 
+pytestmark = pytest.mark.requires_torch
+
 
 class TestValidateModel:
     def test_validate_valid_model(self, client, sample_pytorch_code):
