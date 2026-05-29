@@ -42,7 +42,7 @@ function NeuralNode({ id, data, selected }: { id: string; data: { type: string; 
       selected={selected}
       hasError={inferred?.hasError ?? false}
       errorMessage={inferred?.errorMessage}
-      inferredShape={inferred?.outputShapes?.[0] ?? null}
+      inferredData={inferred ?? null}
     />
   );
 }
@@ -58,6 +58,7 @@ function NeuralEditorInner() {
   const [rightWidth, setRightWidth] = useState(300);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Store selectors
   const nodes = useGraphStore((s) => s.nodes);
@@ -66,6 +67,7 @@ function NeuralEditorInner() {
   const onEdgesChange = useGraphStore((s) => s.onEdgesChange);
   const addNode = useGraphStore((s) => s.addNode);
   const deleteNode = useGraphStore((s) => s.deleteNode);
+  const duplicateNode = useGraphStore((s) => s.duplicateNode);
   const updateNodeParams = useGraphStore((s) => s.updateNodeParams);
   const onConnect = useGraphStore((s) => s.onConnect);
   const clearGraph = useGraphStore((s) => s.clearGraph);
@@ -136,6 +138,11 @@ function NeuralEditorInner() {
         downloadJson(getGraphIR());
       }
 
+      if (isMod && e.key === 'd') {
+        e.preventDefault();
+        if (selectedNodeId) duplicateNode(selectedNodeId);
+      }
+
       if (isMod && e.key === 'e') {
         e.preventDefault();
         handleExportYaml();
@@ -144,23 +151,35 @@ function NeuralEditorInner() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, loadGraphIR, getGraphIR]);
+  }, [undo, redo, loadGraphIR, getGraphIR, selectedNodeId, duplicateNode]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    setIsDragOver(false);
   }, []);
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      setIsDragOver(false);
       const type = event.dataTransfer.getData('application/reactflow');
       if (!type || !MODULE_REGISTRY.has(type)) return;
 
-      const position = screenToFlowPosition({
+      const raw = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
+
+      // Snap to 20px grid
+      const position = {
+        x: Math.round(raw.x / 20) * 20,
+        y: Math.round(raw.y / 20) * 20,
+      };
 
       addNode(type, position);
     },
@@ -444,7 +463,13 @@ function NeuralEditorInner() {
       )}
 
       {/* Canvas */}
-      <div ref={reactFlowWrapper} className="flex-1 min-w-0" onDrop={onDrop} onDragOver={onDragOver}>
+      <div
+        ref={reactFlowWrapper}
+        className={`flex-1 min-w-0 transition-shadow duration-200 ${isDragOver ? 'ring-2 ring-blue-400/30 ring-inset' : ''}`}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+      >
         <ReactFlow
           nodes={nodes}
           edges={styledEdges}
@@ -457,15 +482,15 @@ function NeuralEditorInner() {
           nodeTypes={nodeTypes}
           fitView
           snapToGrid
-          snapGrid={[16, 16]}
-          defaultEdgeOptions={{ animated: true }}
+          snapGrid={[20, 20]}
+          defaultEdgeOptions={{ animated: true, type: 'smoothstep', style: { strokeWidth: 1.5 } }}
         >
           <Background gap={16} size={0.8} />
           <Controls />
           <MiniMap nodeColor={(node) => MODULE_REGISTRY.get((node.data as { type: string }).type)?.color || '#94a3b8'} maskColor="rgba(0,0,0,0.1)" />
           <Panel position="top-center">
             <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/50 px-4 py-2 rounded-full shadow-elevation-2 text-caption text-zinc-500 font-medium">
-              拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+S 保存
+              拖拽模块 · 连接端口 · Ctrl+Z 撤销 · Ctrl+D 复制 · Ctrl+S 保存
             </div>
           </Panel>
           <Panel position="bottom-left">
@@ -492,6 +517,7 @@ function NeuralEditorInner() {
         selectedNode={selectedNode}
         onParamChange={handleParamChange}
         yamlContent={yamlContent}
+        onExportYaml={handleExportYaml}
       />
     </div>
   );
