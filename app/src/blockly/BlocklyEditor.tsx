@@ -60,7 +60,12 @@ export default function BlocklyEditor(): React.ReactElement {
 
   const handleRunCode = useCallback(() => {
     if (!code) return;
-    fetch('http://localhost:8080/run?file=network.py', { method: 'POST' })
+    fetch('http://localhost:8080/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+      .then(() => fetch('http://localhost:8080/run?file=network.py', { method: 'POST' }))
       .then(res => res.json())
       .then(data => {
         console.log('Run result:', data);
