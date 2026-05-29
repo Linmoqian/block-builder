@@ -89,11 +89,12 @@ describe('validateGraph', () => {
 
     // Build a shapeMap that triggers dimension mismatch
     const shapeMap = new Map<string, InferredShape>();
-    shapeMap.set('input_0', { nodeId: 'input_0', outputShapes: [[3, 640, 640]], hasError: false });
-    shapeMap.set('conv_a', { nodeId: 'conv_a', outputShapes: [[64, 640, 640]], hasError: false });
-    shapeMap.set('conv_b', { nodeId: 'conv_b', outputShapes: [[128, 320, 320]], hasError: false });
+    shapeMap.set('input_0', { nodeId: 'input_0', inputShapes: [], outputShapes: [[3, 640, 640]], hasError: false });
+    shapeMap.set('conv_a', { nodeId: 'conv_a', inputShapes: [[3, 640, 640]], outputShapes: [[64, 640, 640]], hasError: false });
+    shapeMap.set('conv_b', { nodeId: 'conv_b', inputShapes: [[64, 640, 640]], outputShapes: [[128, 320, 320]], hasError: false });
     shapeMap.set('concat_0', {
       nodeId: 'concat_0',
+      inputShapes: [[64, 640, 640], [128, 320, 320]],
       outputShapes: [[-1, -1, -1]],
       hasError: true,
       errorMessage: 'Concat 空间维度不匹配',

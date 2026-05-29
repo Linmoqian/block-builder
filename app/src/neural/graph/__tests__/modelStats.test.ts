@@ -35,8 +35,8 @@ describe('computeModelStats', () => {
       [{ id: 'e1', source: 'input_0', target: 'conv_0', sourceHandle: 'out', targetHandle: 'in' }],
     );
     const shapeMap = new Map<string, InferredShape>();
-    shapeMap.set('input_0', { nodeId: 'input_0', outputShapes: [[3, 640, 640]], hasError: false });
-    shapeMap.set('conv_0', { nodeId: 'conv_0', outputShapes: [[64, 640, 640]], hasError: false });
+    shapeMap.set('input_0', { nodeId: 'input_0', inputShapes: [], outputShapes: [[3, 640, 640]], hasError: false });
+    shapeMap.set('conv_0', { nodeId: 'conv_0', inputShapes: [[3, 640, 640]], outputShapes: [[64, 640, 640]], hasError: false });
 
     const stats = computeModelStats(graph, shapeMap);
     // Conv params: 3 * 64 * 3 * 3 + 64 * 2 = 1728 + 128 = 1856

@@ -37,6 +37,7 @@ export interface ModuleDefinition {
   inferShape: (inputShapes: TensorShape[], params: Record<string, ParamValue>) => TensorShape[];
   estimateParams?: (inputShapes: TensorShape[], params: Record<string, ParamValue>) => number;
   estimateFLOPs?: (inputShapes: TensorShape[], params: Record<string, ParamValue>) => number;
+  paramSummary?: (params: Record<string, ParamValue>) => string;
 }
 
 /** A node instance on the canvas */
@@ -70,6 +71,7 @@ export interface GraphIR {
 /** Shape inference result for a node */
 export interface InferredShape {
   nodeId: string;
+  inputShapes: TensorShape[];
   outputShapes: TensorShape[];
   hasError: boolean;
   errorMessage?: string;

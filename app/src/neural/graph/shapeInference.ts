@@ -52,6 +52,7 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
     if (!def) {
       shapeMap.set(nodeId, {
         nodeId,
+        inputShapes: [],
         outputShapes: [[0, 0, 0]],
         hasError: true,
         errorMessage: `Unknown module type: ${node.type}`,
@@ -117,6 +118,7 @@ export function inferAllShapes(graph: GraphIR): Map<string, InferredShape> {
 
     shapeMap.set(nodeId, {
       nodeId,
+      inputShapes,
       outputShapes,
       hasError,
       errorMessage,
