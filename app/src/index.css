@@ -44,9 +44,9 @@
   opacity: 0.6;
 }
 
-/* 画布背景：温暖灰调 */
+/* 画布背景：温暖灰调 + 微妙渐变 */
 .react-flow__background {
-  background: #f5f5f4 !important;
+  background: linear-gradient(135deg, #f8f7f5 0%, #f5f5f4 50%, #f3f4f6 100%) !important;
 }
 
 /* 背景点更精致 */
@@ -62,6 +62,15 @@
 /* 连接线更精致 */
 .react-flow__edge-path {
   stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Handle hover 放大效果 */
+.react-flow-handle-source:hover,
+.react-flow-handle-target:hover {
+  width: 11px !important;
+  height: 11px !important;
 }
 
 /* 控制面板半透明 */
