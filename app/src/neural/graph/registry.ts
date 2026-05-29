@@ -75,6 +75,7 @@ MODULE_REGISTRY.register({
     const wOut = Math.floor((w + 2 * p - k) / s) + 1;
     return [[params.out_channels as number, hOut, wOut]];
   },
+  paramSummary: (p) => `${p.kernel_size}x${p.kernel_size}${p.stride !== 1 ? ', s=' + p.stride : ''}`,
   estimateParams: (inputs, params) => {
     const inCh = inputs[0]?.[0] || 0;
     const outCh = params.out_channels as number;
@@ -96,6 +97,58 @@ MODULE_REGISTRY.register({
 });
 
 MODULE_REGISTRY.register({
+  type: 'DWConv',
+  label: '深度可分离卷积',
+  category: 'basic',
+  color: '#0ea5e9',
+  params: {
+    out_channels: { type: 'int', default: 64, min: 1, max: 2048, label: '输出通道' },
+    kernel_size: { type: 'int', default: 3, min: 1, max: 11, label: '卷积核大小' },
+    stride: { type: 'int', default: 1, min: 1, max: 4, label: '步长' },
+  },
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
+  inferShape: (inputs, params) => {
+    if (!inputs[0]) return [[0, 0, 0]];
+    const [, h, w] = inputs[0];
+    const k = params.kernel_size as number;
+    const s = params.stride as number;
+    const p = Math.floor(k / 2);
+    const hOut = Math.floor((h + 2 * p - k) / s) + 1;
+    const wOut = Math.floor((w + 2 * p - k) / s) + 1;
+    return [[params.out_channels as number, hOut, wOut]];
+  },
+  paramSummary: (p) => `DW ${p.kernel_size}x${p.kernel_size}${p.stride !== 1 ? ', s=' + p.stride : ''}`,
+  estimateParams: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const k = params.kernel_size as number;
+    const g = gcd(inCh, outCh);
+    return (inCh / g) * outCh * k * k + outCh * 2;
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const k = params.kernel_size as number;
+    const s = params.stride as number;
+    const p = Math.floor(k / 2);
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    const g = gcd(inCh, outCh);
+    const hOut = Math.floor((h + 2 * p - k) / s) + 1;
+    const wOut = Math.floor((w + 2 * p - k) / s) + 1;
+    return Math.round((inCh / g) * outCh * k * k * hOut * wOut);
+  },
+});
+
+function gcd(a: number, b: number): number {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+MODULE_REGISTRY.register({
   type: 'C2f',
   label: 'C2f',
   category: 'composite',
@@ -111,6 +164,7 @@ MODULE_REGISTRY.register({
     const [, h, w] = inputs[0];
     return [[params.out_channels as number, h, w]];
   },
+  paramSummary: (p) => `ch=${p.out_channels}, n=${p.n}`,
   estimateParams: (inputs, params) => {
     const inCh = inputs[0]?.[0] || 0;
     const outCh = params.out_channels as number;
@@ -125,6 +179,43 @@ MODULE_REGISTRY.register({
     const h = inputs[0]?.[1] || 0;
     const w = inputs[0]?.[2] || 0;
     return Math.round(0.5 * inCh * outCh * 3 * 3 * n * h * w);
+  },
+});
+
+MODULE_REGISTRY.register({
+  type: 'C3k2',
+  label: 'C3k2',
+  category: 'composite',
+  color: '#7c3aed',
+  params: {
+    out_channels: { type: 'int', default: 128, min: 1, max: 2048, label: '输出通道' },
+    n: { type: 'int', default: 1, min: 1, max: 8, label: '层数' },
+    c3k: { type: 'bool', default: false, label: '使用 C3k' },
+    e: { type: 'float', default: 0.5, min: 0.1, max: 1.0, label: '扩展比' },
+  },
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
+  inferShape: (inputs, params) => {
+    if (!inputs[0]) return [[0, 0, 0]];
+    const [, h, w] = inputs[0];
+    return [[params.out_channels as number, h, w]];
+  },
+  paramSummary: (p) => `ch=${p.out_channels}, n=${p.n}${p.c3k ? ', c3k' : ''}`,
+  estimateParams: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const n = params.n as number;
+    const e = params.e as number;
+    return Math.round(0.5 * inCh * outCh * 3 * 3 * n * e);
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const n = params.n as number;
+    const e = params.e as number;
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    return Math.round(0.5 * inCh * outCh * 3 * 3 * n * e * h * w);
   },
 });
 
@@ -144,6 +235,7 @@ MODULE_REGISTRY.register({
     const [, h, w] = inputs[0];
     return [[params.out_channels as number, h, w]];
   },
+  paramSummary: (p) => `ch=${p.out_channels}, k=${p.kernel_size}`,
   estimateParams: (inputs, params) => {
     const inCh = inputs[0]?.[0] || 0;
     const outCh = params.out_channels as number;
@@ -158,6 +250,40 @@ MODULE_REGISTRY.register({
     const h = inputs[0]?.[1] || 0;
     const w = inputs[0]?.[2] || 0;
     return (inCh * outCh * 1 * 1 + outCh * (k * k + k * k + k * k)) * h * w;
+  },
+});
+
+MODULE_REGISTRY.register({
+  type: 'C2PSA',
+  label: 'C2PSA',
+  category: 'attention',
+  color: '#d97706',
+  params: {
+    out_channels: { type: 'int', default: 256, min: 1, max: 2048, label: '输出通道' },
+    n: { type: 'int', default: 1, min: 1, max: 8, label: 'PSA 块数' },
+    e: { type: 'float', default: 0.5, min: 0.1, max: 1.0, label: '扩展比' },
+  },
+  inputs: [{ id: 'in', label: '输入', required: true }],
+  outputs: [{ id: 'out', label: '输出', required: true }],
+  inferShape: (inputs, params) => {
+    if (!inputs[0]) return [[0, 0, 0]];
+    const [, h, w] = inputs[0];
+    return [[params.out_channels as number, h, w]];
+  },
+  paramSummary: (p) => `ch=${p.out_channels}, n=${p.n}`,
+  estimateParams: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const n = params.n as number;
+    return Math.round(inCh * outCh * 0.5 * n + outCh * outCh * 0.25 * n);
+  },
+  estimateFLOPs: (inputs, params) => {
+    const inCh = inputs[0]?.[0] || 0;
+    const outCh = params.out_channels as number;
+    const n = params.n as number;
+    const h = inputs[0]?.[1] || 0;
+    const w = inputs[0]?.[2] || 0;
+    return Math.round(inCh * outCh * 0.5 * n * h * w);
   },
 });
 
@@ -178,6 +304,7 @@ MODULE_REGISTRY.register({
     const s = params.scale_factor as number;
     return [[c, Math.round(h * s), Math.round(w * s)]];
   },
+  paramSummary: (p) => `x${p.scale_factor}`,
 });
 
 MODULE_REGISTRY.register({
@@ -193,6 +320,7 @@ MODULE_REGISTRY.register({
     { id: 'in_1', label: '输入 B', required: true },
   ],
   outputs: [{ id: 'out', label: '输出', required: true }],
+  paramSummary: (p) => `axis=${p.axis}`,
   inferShape: (inputs, params) => {
     if (!inputs[0] || !inputs[1]) return [[0, 0, 0]];
     const axis = params.axis as number;
@@ -217,6 +345,7 @@ MODULE_REGISTRY.register({
   params: {
     reduction: { type: 'int', default: 16, min: 1, max: 64, label: '缩减比' },
   },
+  paramSummary: () => 'r=16',
   inputs: [{ id: 'in', label: '输入', required: true }],
   outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs) => (inputs[0] ? [inputs[0]] : [[0, 0, 0]]),
@@ -229,6 +358,8 @@ MODULE_REGISTRY.register({
   color: '#ef4444',
   params: {
     num_classes: { type: 'int', default: 80, min: 1, max: 1000, label: '类别数' },
+    reg_max: { type: 'int', default: 16, min: 1, max: 32, label: 'DFL bins' },
+    end2end: { type: 'bool', default: false, label: '端到端 NMS' },
   },
   inputs: [
     { id: 'p3', label: 'P3 (80x80)', required: true },
@@ -236,6 +367,7 @@ MODULE_REGISTRY.register({
     { id: 'p5', label: 'P5 (20x20)', required: true },
   ],
   outputs: [],
+  paramSummary: (p) => `nc=${p.num_classes}, reg_max=${p.reg_max}`,
   inferShape: (inputs, params) => {
     if (inputs.length === 0 || inputs[0][0] === 0) return [];
     const nc = (params.num_classes as number) || 80;
@@ -288,6 +420,7 @@ MODULE_REGISTRY.register({
     stride: { type: 'int', default: 2, min: 1, max: 16, label: 'Stride' },
     padding: { type: 'int', default: 0, min: 0, max: 8, label: '填充' },
   },
+  paramSummary: (p) => `${p.kernel_size}x${p.kernel_size}, s=${p.stride}`,
   inputs: [{ id: 'in', label: '输入', required: true }],
   outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {
@@ -340,6 +473,7 @@ MODULE_REGISTRY.register({
     out_features: { type: 'int', default: 1000, min: 1, max: 100000, label: '输出特征数' },
     bias: { type: 'bool', default: true, label: '偏置' },
   },
+  paramSummary: (p) => `out=${p.out_features}`,
   inputs: [{ id: 'in', label: '输入', required: true }],
   outputs: [{ id: 'out', label: '输出', required: true }],
   inferShape: (inputs, params) => {

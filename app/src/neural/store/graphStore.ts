@@ -31,6 +31,7 @@ export interface GraphStore {
   onEdgesChange: (changes: EdgeChange<RFEdge>[]) => void;
   addNode: (type: string, position: { x: number; y: number }) => string | undefined;
   deleteNode: (id: string) => void;
+  duplicateNode: (id: string) => string | undefined;
   updateNodeParams: (id: string, params: Record<string, ParamValue>) => void;
   onConnect: (connection: Connection) => void;
   clearGraph: () => void;
@@ -98,6 +99,25 @@ export const useGraphStore = create<GraphStore>()(
             nodes: get().nodes.filter((n) => n.id !== id),
             edges: get().edges.filter((e) => e.source !== id && e.target !== id),
           });
+        },
+
+        duplicateNode: (id) => {
+          const node = get().nodes.find((n) => n.id === id);
+          if (!node) return undefined;
+          const data = node.data as RFNodeData;
+          const newId = `${data.type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          const newNode: RFNode = {
+            id: newId,
+            type: 'neural',
+            position: { x: node.position.x + 40, y: node.position.y + 40 },
+            data: { type: data.type, params: { ...data.params } },
+          };
+          const updatedNodes = get().nodes.map((n) =>
+            n.id === id ? { ...n, selected: false } : n
+          );
+          set({ nodes: [...updatedNodes, newNode] });
+          get().setSelectedNodeId(newId);
+          return newId;
         },
 
         updateNodeParams: (id, params) => {
